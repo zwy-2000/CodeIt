@@ -5,8 +5,8 @@ import os
 import re
 
 from codeit import PROJECT_FOLDER_PATH
-PROJECT_FOLDER_PATH = PROJECT_FOLDER_PATH+'/codeit'
-print(PROJECT_FOLDER_PATH)
+
+
 
 def find_function_names(filename):
     with open(filename, "r") as file:
