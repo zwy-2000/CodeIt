@@ -1,5 +1,11 @@
 # Copyright (c) 2024 Qualcomm Technologies, Inc.
 # All Rights Reserved.
+from pathlib import Path
+import sys
+path_root = Path(__file__).parents[1]
+sys.path.append(str(path_root))
+
+
 
 import concurrent.futures
 import cProfile
