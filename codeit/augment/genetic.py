@@ -226,7 +226,8 @@ class TaskEvolver:
         return mutated_task
 
     def evolve(self, selected_task):
-        mutated_task = self.mutate_task(selected_task)
+        # mutated_task = self.mutate_task(selected_task)
+        mutated_task = self.mutate_task2(selected_task)
         return mutated_task
 
     def initialise_population(self, task_keys, file_path, tasks=None):
@@ -279,6 +280,7 @@ class TaskEvolver:
 
             if mutation_choice == "program":
                 mutation_results = self.mutate_program(task=task)
+                # print("mutation results:", mutation_results) ###
                 program = change_function_name(mutation_results["output"], new_child_id)
                 mutation = mutation_results["mutation"]
                 self.program_mutation_log += mutation_results["log"]
@@ -344,6 +346,105 @@ class TaskEvolver:
             else:
                 print("error mutating input:", self.input_mutation_log.split("Traceback")[-1])
                 self.input_mutation_log += "mutate task except:" + traceback.format_exc()
+
+    def mutate_task2(self, task):
+        """improved mutation of a task"""
+        mutation_choice = "program"
+        try:
+            mutation = ["inputs"]
+            mutated_training_examples = []
+            mutated_test_examples = []
+            if len(self.iteration_id) > 0:
+                new_child_id = f"it{self.iteration_id}_{self.get_new_child_id(task.task_key)}"
+            else:
+                new_child_id = self.get_new_child_id(task.task_key)
+
+            if mutation_choice == "program":
+                mutation_results = self.mutate_program(task=task)
+                # print("mutation results:", mutation_results) ###
+                program = change_function_name(mutation_results["output"], new_child_id)
+                mutation = mutation_results["mutation"]
+                self.program_mutation_log += mutation_results["log"]
+                equivalent = True
+                exec(program, globals(), locals())
+                for example_type in ["training_examples", "test_examples"]:
+                    if self.timed_out:
+                        raise ValueError(f"timed out on program execution in mutate task")
+                    example_list = (
+                        task.training_examples
+                        if example_type == "training_examples"
+                        else task.test_examples
+                    )
+                    mutated_examples = []
+                    for example in example_list:
+                        I = example["input"]
+                        output = eval(f"solve_{task.task_key}_{new_child_id}(I)")
+                        if output != example["output"]:
+                            equivalent = False
+                        if output == I:
+                            mutation_choice = "input"
+                            mutation_results = self.mutate_input(example=example, program=program)
+                            I = mutation_results["output"]["input"]
+                            output = eval(f"solve_{task.task_key}_{new_child_id}(I)")
+                            mutation.append(mutation_results["mutation"])
+                            self.input_mutation_log += mutation_results["log"]
+                            print('--------input mutate --------', example_type)
+                        mutated_examples.append({"input": I, "output": output})
+                    if example_type == "training_examples":
+                        mutated_training_examples = mutated_examples
+                    else:
+                        mutated_test_examples = mutated_examples
+            
+            print("mutated_training_examples:", mutated_training_examples)
+            print("mutated_test_examples:", mutated_test_examples)
+
+            
+
+            # else:
+            #     program = task.program
+            #     program = change_function_name(program, new_child_id)
+            #     for example_type in ["training_examples", "test_examples"]:
+            #         example_list = (
+            #             task.training_examples
+            #             if example_type == "training_examples"
+            #             else task.test_examples
+            #         )
+            #         mutated_examples = []
+            #         for i, example in enumerate(example_list):
+            #             mutation_results = self.mutate_input(example=example, program=program)
+            #             input_grid = mutation_results["output"]["input"]
+            #             output_grid = mutation_results["output"]["output"]
+            #             mutation.append(mutation_results["mutation"])
+            #             self.input_mutation_log += mutation_results["log"]
+            #             mutated_examples.append({"input": input_grid, "output": output_grid})
+            #         if example_type == "training_examples":
+            #             mutated_training_examples = mutated_examples
+            #         else:
+            #             mutated_test_examples = mutated_examples
+            #     equivalent = False
+
+            new_key = f"{task.task_key}_{new_child_id}"
+            return Task(
+                program=program,
+                training_examples=mutated_training_examples,
+                test_examples=mutated_test_examples,
+                task_key=new_key,
+                extra_info={"mutation": mutation, "equivalent": equivalent},
+            )
+
+
+        except:
+            print("error in mutate task not timeout")
+            t = traceback.format_exc()
+            traceback.print_exc()
+            if mutation_choice == "program":
+                print("error mutating program:", self.program_mutation_log.split("Traceback")[-1])
+                self.program_mutation_log += "mutate task except:" + traceback.format_exc()
+            else:
+                print("error mutating input:", self.input_mutation_log.split("Traceback")[-1])
+                self.input_mutation_log += "mutate task except:" + traceback.format_exc()
+
+
 
     def fitness_function(self, mutated_task, selected_task):
         """function to evaluate the fitness of a mutated task"""
@@ -499,7 +600,9 @@ class TaskEvolver:
                     base_type_to_primitive_function_mapping=self.base_type_to_primitive_function_mapping,
                     type_to_primitive_constant_mapping=self.primitive_constants,
                 )
-                mutation = program_mutator.mutate()
+                # mutation = program_mutator.mutate()
+                mutation = program_mutator.mutate2()
+                # print("--------------------mutation-------------------", mutation)
                 exec(ast.unparse(program_mutator.program_ast), globals(), locals())
                 not_identity = False
                 for i, example in enumerate(task.training_examples + task.test_examples):
@@ -521,7 +624,9 @@ class TaskEvolver:
                     "mutation": mutation,
                 }
             except:
+                print('------------------ERROR--------------------------')
                 mutated_program_log += f"mutate program except:{traceback.format_exc()}\n"
+                print(f"mutate program except:{traceback.format_exc()}\n")
                 pass
 
 

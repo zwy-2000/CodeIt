@@ -53,11 +53,14 @@ class ProgramMutator:
             weights=[self.phi_arg, self.phi_func, 1 - (self.phi_func + self.phi_arg)],
         )[0]
         assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
+        print("assignments:",assignments)
+        print("length of assignments:",len(assignments))
         node_to_mutate = random.choice(assignments)
         self.memory_index = assignments.index(node_to_mutate) + 1
         if mutation_choice == "replace_argument":
             arg_to_replace_id = random.choice(range(len(node_to_mutate.value.args)))
             arg_to_replace = node_to_mutate.value.args[arg_to_replace_id].id
+            print("arg_to_replace:", arg_to_replace)
             new_arg, new_variable_mutation = self.replace_argument(arg_to_replace=arg_to_replace)
             assignments[self.memory_index - 1].value.args[arg_to_replace_id].id = new_arg
             if new_variable_mutation:
@@ -66,11 +69,13 @@ class ProgramMutator:
                 mutation = ("arg", arg_to_replace, new_arg)
         elif mutation_choice == "replace_function":
             function_to_replace = node_to_mutate.value.func.id
+            print("function_to_replace:", function_to_replace)
             new_function = self.replace_function(function_to_replace=function_to_replace)
             assignments[self.memory_index - 1].value.func.id = new_function
             mutation = ("func", function_to_replace, new_function)
         else:
             variable_to_replace = node_to_mutate.targets[0].id
+            print("variable_to_replace:", variable_to_replace)
             new_variable_value = self.replace_variable(variable_to_replace=variable_to_replace)
             mutation = (
                 "var_def",
@@ -79,7 +84,68 @@ class ProgramMutator:
             )
             new_node = ast.parse(new_variable_value).body[0].value
             assignments[self.memory_index - 1].value = new_node
+        print("mutation:", mutation)
         return mutation
+    
+    def mutate2(self):
+        mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda == 2
+
+        assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
+        if len(assignments) < 2:
+            n_nodes = 1
+        elif len(assignments) < 5:
+            n_nodes = len(assignments)
+        else:
+            n_nodes = 5
+
+        if n_nodes > 1:
+            n_weights = [w / sum(mutation_node_weights[:n_nodes]) for w in mutation_node_weights[:n_nodes]]
+            n_mutation = random.choices(range(1,n_nodes+1), weights = n_weights)[0]
+        else:
+            n_mutation = 1
+        print("---------------n mutation:",n_mutation)
+        
+        mutation = []
+
+        nodes_to_mutate = random.sample(assignments, k = n_mutation)
+        for node_to_mutate in nodes_to_mutate:
+            mutation_choice = random.choices(
+                ["replace_argument", "replace_function", "replace_variable"],
+                weights=[self.phi_arg, self.phi_func, 1 - (self.phi_func + self.phi_arg)],
+            )[0]
+            self.memory_index = assignments.index(node_to_mutate) + 1
+            if mutation_choice == "replace_argument":
+                arg_to_replace_id = random.choice(range(len(node_to_mutate.value.args)))
+                arg_to_replace = node_to_mutate.value.args[arg_to_replace_id].id
+                print("arg_to_replace:", arg_to_replace)
+                new_arg, new_variable_mutation = self.replace_argument(arg_to_replace=arg_to_replace)
+                assignments[self.memory_index - 1].value.args[arg_to_replace_id].id = new_arg
+                if new_variable_mutation:
+                    mutation.append(("arg", arg_to_replace, new_arg, new_variable_mutation)) ##
+                else:
+                    mutation.append(("arg", arg_to_replace, new_arg)) ##
+            elif mutation_choice == "replace_function":
+                function_to_replace = node_to_mutate.value.func.id
+                print("function_to_replace:", function_to_replace)
+                new_function = self.replace_function(function_to_replace=function_to_replace)
+                assignments[self.memory_index - 1].value.func.id = new_function
+                mutation.append(("func", function_to_replace, new_function)) ##
+                variable_to_replace = node_to_mutate.targets[0].id
+                print("variable_to_replace:", variable_to_replace)
+                new_variable_value = self.replace_variable(variable_to_replace=variable_to_replace)
+                mutation.append((
+                    "var_def",
+                    f"{node_to_mutate.value.func.id}({', '.join([arg.id for arg in node_to_mutate.value.args])})",
+                    new_variable_value,
+                ))
+                new_node = ast.parse(new_variable_value).body[0].value
+                assignments[self.memory_index - 1].value = new_node
+        return mutation
+
+
+        
+
+
 
     def sample_term_with_type(self, term_type, terms_to_exclude):
         filtered_type_dict = self.filter_type_dict_by_index()

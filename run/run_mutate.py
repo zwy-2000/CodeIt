@@ -109,8 +109,12 @@ def main(config: Any) -> None:
     with open(config.data.split_keys_path, "r") as f:
         split_keys = json.load(f)
 
-    val_keys = split_keys["val"][: config.data.n_val]
-    train_keys = split_keys["train"][: config.data.n_train]
+    # val_keys = split_keys["val"][: config.data.n_val]
+    # train_keys = split_keys["train"][: config.data.n_train]
+
+    val_keys = split_keys["val"][: 3]
+    train_keys = split_keys["train"][: 3]
+
 
     # baseline params
     n_samples = config.baseline.n_samples
