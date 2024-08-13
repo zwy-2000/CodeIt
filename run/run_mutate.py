@@ -112,8 +112,8 @@ def main(config: Any) -> None:
     # val_keys = split_keys["val"][: config.data.n_val]
     # train_keys = split_keys["train"][: config.data.n_train]
 
-    val_keys = split_keys["val"][: 3]
-    train_keys = split_keys["train"][: 3]
+    val_keys = split_keys["val"][: 2]
+    train_keys = split_keys["train"][: 2]
 
 
     # baseline params
