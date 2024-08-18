@@ -1,5 +1,84 @@
+import numpy as np
 import ast
 from collections import defaultdict
+
+###################### get dsl
+
+def extract_function_names_from_file(file_path):
+    with open(file_path, "r") as file:
+        file_content = file.read()
+    
+    # Parse the file content into an AST
+    tree = ast.parse(file_content)
+    
+    # List to hold function names
+    function_names = []
+    
+    # Traverse the AST and find all function definitions
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            function_names.append(node.name)
+    
+    return function_names
+
+# Example usage
+dsl_file_path = "codeit/dsl/dsl.py"  # Path to your dsl.py file
+dsl_functions = extract_function_names_from_file(dsl_file_path)
+
+
+
+# adjacency matrix
+num_functions = 162 # 160 functions + Input Output
+dependence_graph = np.zeros((num_functions, num_functions), dtype=int)
+
+
+# function names to indices
+function_to_index = {func: i for i, func in enumerate(dsl_functions)}
+function_to_index['Input'] = 160
+function_to_index['Output'] = 161
+
+################# get programs
+
+# extract program definitions as strings
+def extract_program_definitions(file_path):
+    with open(file_path, "r") as file:
+        file_content = file.read()
+    
+    # Parse the file content into an AST
+    tree = ast.parse(file_content)
+    
+    # List to hold function definitions as strings
+    function_strings = []
+    
+    # Traverse the AST and find all function definitions
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            # Get the function name
+            func_name = node.name
+            
+            # Extract the full source code of the function
+            start_line = node.lineno - 1  # line numbers are 1-based
+            end_line = node.end_lineno  # end_lineno is available in Python 3.8+
+            
+            # Get the full function definition as a string
+            function_string = "\n".join(file_content.splitlines()[start_line:end_line])
+            
+            # Add the function definition string to the list
+            function_strings.append(function_string)
+    
+    return function_strings
+
+# Example usage
+solvers_file_path = "codeit/dsl/solvers.py"  # Path to your solvers.py file
+programs = extract_program_definitions(solvers_file_path)
+
+
+
+
+
+
+
+
 
 # Helper function to extract function calls and their input/output arguments from an AST node
 def extract_function_calls(node):
@@ -43,43 +122,43 @@ def analyze_program(program_code):
     
     return connectivity, input_functions, output_functions
 
-# Example program as a string
-program_code = """
-def solve_7468f01a(I):
-    x1 = objects(I, F, T, T)
-    x2 = first(x1)
-    x3 = subgrid(x2, I)
-    O = vmirror(x3)
-    return O
-"""
 
-# Analyze the example program
-connectivity, input_functions, output_functions = analyze_program(program_code)
+# # Example program as a string
+# program_code = """
+# def solve_7468f01a(I):
+#     x1 = objects(I, F, T, T)
+#     x2 = first(x1)
+#     x3 = subgrid(x2, I)
+#     O = vmirror(x3)
+#     return O
+# """
 
-# Display the connectivity information
-print("Connectivity information:")
-for func, follows in connectivity.items():
-    print(f"Function '{func}' is followed by: {follows}")
 
-# Display which functions take "I" as input
-print("\nFunctions that take 'I' as an input argument:")
-for func in input_functions:
-    print(f"Function '{func}'")
+for program_code in programs:
+    # Analyze the example program
+    connectivity, input_functions, output_functions = analyze_program(program_code)
+    for func, follows in connectivity.items():
+        func_index = function_to_index[func]
+        print(follows)
+        for follow in follows:
+            if follow == 'x2':
+                print(program_code)
+            follow_index = function_to_index[follow]
+            dependence_graph[func_index,follow_index] += 1
+    for func in input_functions:
+        func_index = function_to_index[func]
+        dependence_graph[160,func_index] += 1
+    for func in output_functions:
+        func_index = function_to_index[func]
+        dependence_graph[func_index, 161] += 1
 
-# Display which function outputs to "O"
-print("\nFunctions that output to 'O':")
-for func in output_functions:
-    print(f"Function '{func}'")
 
-# Example output storage: Convert connectivity to a node-based structure
-nodes = {}
-for func, follows in connectivity.items():
-    nodes[func] = {
-        'follows': follows,
-        'takes_I_as_input': func in input_functions,
-        'outputs_to_O': func in output_functions
-    }
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-print("\nNode structure:")
-for func, info in nodes.items():
-    print(f"{func}: {info}")
+df_denpendence_graph = pd.DataFrame(dependence_graph, index = function_to_index, columns= function_to_index)
+plt.figure(figsize = (10,8))
+sns.heatmap(df_denpendence_graph, cmap = 'coolwarm')
+plt.savefig('/codit/dsl/savepic.png')
+
