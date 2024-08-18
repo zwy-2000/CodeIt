@@ -82,45 +82,50 @@ programs = extract_program_definitions(solvers_file_path)
 
 # Helper function to extract function calls and their input/output arguments from an AST node
 def extract_function_calls(node):
-    calls = []
+    calls = {}
+    targets_seq = []
     input_functions = set()
-    output_functions = set()
 
     for child in ast.walk(node):
         if isinstance(child, ast.Assign):  # Handling assignments (e.g., x = func())
             if isinstance(child.value, ast.Call):
                 if isinstance(child.value.func, ast.Name):  # Function call
-                    func_name = child.value.func.id
-                    calls.append(func_name)
+
+                    for target in child.targets:
+                        targets_seq.append(target.id)
+                        calls[target.id] = {'func':child.value.func.id, 'args': [arg.id for arg in child.value.args]}
+                    
+
+                    func_name = child.value.func.id                    
+                    
 
                     # Check if "I" is in the arguments
                     for arg in child.value.args:
                         if isinstance(arg, ast.Name) and arg.id == "I":
                             input_functions.add(func_name)
-                    
-                    # Check if the assigned variable is "O"
-                    for target in child.targets:
-                        if isinstance(target, ast.Name) and target.id == "O":
-                            output_functions.add(func_name)
 
-    return calls, input_functions, output_functions
+    return targets_seq, calls, input_functions
 
 # Analyze a single program and extract function call sequences, inputs, and outputs
-def analyze_program(program_code):
+def analyze_program(program_code, dependece_graph):
     # Parse the program code into an AST
     tree = ast.parse(program_code)
     
     # Extract function call sequences along with input/output tracking
-    function_calls, input_functions, output_functions = extract_function_calls(tree)
+    targets_list, function_calls, input_functions = extract_function_calls(tree)
+    print("target list", targets_list)
+    print("calls:", function_calls)
+    print("input:", input_functions)
     
     # Build connectivity information
-    connectivity = defaultdict(list)
-    for i in range(len(function_calls) - 1):
-        current_func = function_calls[i]
-        next_func = function_calls[i + 1]
-        connectivity[current_func].append(next_func)
+    # connectivity = defaultdict(list)
+    # for i in range(len(function_calls) - 1):
+    #     current_func = function_calls[i]
+    #     next_func = function_calls[i + 1]
+    #     connectivity[current_func].append(next_func)
     
-    return connectivity, input_functions, output_functions
+    # return connectivity, input_functions, output_functions
+    return function_calls, input_functions
 
 
 # # Example program as a string
@@ -134,23 +139,25 @@ def analyze_program(program_code):
 # """
 
 
-for program_code in programs:
+for program_code in programs[30:40]:
     # Analyze the example program
-    connectivity, input_functions, output_functions = analyze_program(program_code)
-    for func, follows in connectivity.items():
-        func_index = function_to_index[func]
-        print(follows)
-        for follow in follows:
-            if follow == 'x2':
-                print(program_code)
-            follow_index = function_to_index[follow]
-            dependence_graph[func_index,follow_index] += 1
-    for func in input_functions:
-        func_index = function_to_index[func]
-        dependence_graph[160,func_index] += 1
-    for func in output_functions:
-        func_index = function_to_index[func]
-        dependence_graph[func_index, 161] += 1
+    print('---------')
+    connectivity, input_functions = analyze_program(program_code, dependence_graph)
+
+    # for func, follows in connectivity.items():
+    #     func_index = function_to_index[func]
+    #     print(follows)
+    #     for follow in follows:
+    #         if follow == 'x2':
+    #             print(program_code)
+    #         follow_index = function_to_index[follow]
+    #         dependence_graph[func_index,follow_index] += 1
+    # for func in input_functions:
+    #     func_index = function_to_index[func]
+    #     dependence_graph[160,func_index] += 1
+    # for func in output_functions:
+    #     func_index = function_to_index[func]
+    #     dependence_graph[func_index, 161] += 1
 
 
 import pandas as pd
