@@ -349,7 +349,12 @@ class TaskEvolver:
 
     def mutate_task2(self, task):
         """improved mutation of a task"""
-        mutation_choice = "program"
+        # mutation_choice = "program"
+        """mutates a task by either mutating the program or the input"""
+        mutation_choice = random.choices(
+            ["input", "program"], weights=[self.phi_inputs, self.phi_program]
+        )[0]
+        print(mutation_choice)
         try:
             mutation = ["inputs"]
             mutated_training_examples = []
@@ -396,34 +401,35 @@ class TaskEvolver:
                         mutated_training_examples = mutated_examples
                     else:
                         mutated_test_examples = mutated_examples
+                        
             
-            print("mutated_training_examples:", mutated_training_examples)
-            print("mutated_test_examples:", mutated_test_examples)
+                print("mutated_training_examples:", mutated_training_examples)
+                print("mutated_test_examples:", mutated_test_examples)
 
             
 
-            # else:
-            #     program = task.program
-            #     program = change_function_name(program, new_child_id)
-            #     for example_type in ["training_examples", "test_examples"]:
-            #         example_list = (
-            #             task.training_examples
-            #             if example_type == "training_examples"
-            #             else task.test_examples
-            #         )
-            #         mutated_examples = []
-            #         for i, example in enumerate(example_list):
-            #             mutation_results = self.mutate_input(example=example, program=program)
-            #             input_grid = mutation_results["output"]["input"]
-            #             output_grid = mutation_results["output"]["output"]
-            #             mutation.append(mutation_results["mutation"])
-            #             self.input_mutation_log += mutation_results["log"]
-            #             mutated_examples.append({"input": input_grid, "output": output_grid})
-            #         if example_type == "training_examples":
-            #             mutated_training_examples = mutated_examples
-            #         else:
-            #             mutated_test_examples = mutated_examples
-            #     equivalent = False
+            else:
+                program = task.program
+                program = change_function_name(program, new_child_id)
+                for example_type in ["training_examples", "test_examples"]:
+                    example_list = (
+                        task.training_examples
+                        if example_type == "training_examples"
+                        else task.test_examples
+                    )
+                    mutated_examples = []
+                    for i, example in enumerate(example_list):
+                        mutation_results = self.mutate_input(example=example, program=program)
+                        input_grid = mutation_results["output"]["input"]
+                        output_grid = mutation_results["output"]["output"]
+                        mutation.append(mutation_results["mutation"])
+                        self.input_mutation_log += mutation_results["log"]
+                        mutated_examples.append({"input": input_grid, "output": output_grid})
+                    if example_type == "training_examples":
+                        mutated_training_examples = mutated_examples
+                    else:
+                        mutated_test_examples = mutated_examples
+                equivalent = False
 
             new_key = f"{task.task_key}_{new_child_id}"
             return Task(
