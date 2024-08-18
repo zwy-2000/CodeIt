@@ -354,7 +354,6 @@ class TaskEvolver:
         mutation_choice = random.choices(
             ["input", "program"], weights=[self.phi_inputs, self.phi_program]
         )[0]
-        print(mutation_choice)
         try:
             mutation = ["inputs"]
             mutated_training_examples = []
@@ -393,7 +392,7 @@ class TaskEvolver:
                             output = eval(f"solve_{task.task_key}_{new_child_id}(I)")
                             mutation.append(mutation_results["mutation"])
                             self.input_mutation_log += mutation_results["log"]
-                            print('--------input mutate --------', example_type)
+                            # print('--------input mutate --------', example_type)
                             if output != I:
                                 break
                         mutated_examples.append({"input": I, "output": output})
@@ -403,8 +402,8 @@ class TaskEvolver:
                         mutated_test_examples = mutated_examples
                         
             
-                print("mutated_training_examples:", mutated_training_examples)
-                print("mutated_test_examples:", mutated_test_examples)
+                # print("mutated_training_examples:", mutated_training_examples)
+                # print("mutated_test_examples:", mutated_test_examples)
 
             
 
