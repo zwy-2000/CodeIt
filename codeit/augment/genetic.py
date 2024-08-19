@@ -631,9 +631,9 @@ class TaskEvolver:
                     "mutation": mutation,
                 }
             except:
-                print('------------------ERROR--------------------------')
+                # print('------------------ERROR--------------------------')
                 mutated_program_log += f"mutate program except:{traceback.format_exc()}\n"
-                print(f"mutate program except:{traceback.format_exc()}\n")
+                # print(f"mutate program except:{traceback.format_exc()}\n")
                 pass
 
 
