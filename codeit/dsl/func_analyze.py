@@ -107,15 +107,45 @@ def extract_function_calls(node):
     return targets_seq, calls, input_functions
 
 # Analyze a single program and extract function call sequences, inputs, and outputs
-def analyze_program(program_code, dependece_graph):
+def analyze_program(program_code, function_to_index, dependece_graph):
     # Parse the program code into an AST
     tree = ast.parse(program_code)
     
     # Extract function call sequences along with input/output tracking
     targets_list, function_calls, input_functions = extract_function_calls(tree)
-    print("target list", targets_list)
-    print("calls:", function_calls)
-    print("input:", input_functions)
+    # print("target list", targets_list)
+    # print("calls:", function_calls)
+    # print("input:", input_functions)
+
+    for target in targets_list:
+        target_call = function_calls[target]
+        func_follows = target_call['func']
+
+        if func_follows in targets_list:
+            func_follows = function_calls[func_follows]['func']
+
+        for arg in target_call['args']:
+            if arg in targets_list:
+                prev_func = function_calls[arg]['func']
+                if prev_func in targets_list:
+                    prev_func = function_calls[prev_func]['func']
+                prev_indx = function_to_index[prev_func]
+                follows_indx = function_to_index[func_follows]
+                dependence_graph[prev_indx,follows_indx] += 1
+        
+        if target == 'O':
+            func_indx = function_to_index[func_follows]
+            dependece_graph[func_indx, 161] += 1
+    
+    for input_func in input_functions:
+        if input_func in targets_list:
+            input_func = function_calls[input_func]['func']
+        func_indx = function_to_index[input_func]
+        dependence_graph[160, func_indx] += 1
+    
+    
+
+
     
     # Build connectivity information
     # connectivity = defaultdict(list)
@@ -125,24 +155,16 @@ def analyze_program(program_code, dependece_graph):
     #     connectivity[current_func].append(next_func)
     
     # return connectivity, input_functions, output_functions
-    return function_calls, input_functions
+    return dependece_graph
 
 
-# # Example program as a string
-# program_code = """
-# def solve_7468f01a(I):
-#     x1 = objects(I, F, T, T)
-#     x2 = first(x1)
-#     x3 = subgrid(x2, I)
-#     O = vmirror(x3)
-#     return O
-# """
 
 
-for program_code in programs[30:40]:
+for program_code in programs:
     # Analyze the example program
-    print('---------')
-    connectivity, input_functions = analyze_program(program_code, dependence_graph)
+    # print('---------')
+    # print(program_code)
+    dependence_graph = analyze_program(program_code, function_to_index, dependence_graph)
 
     # for func, follows in connectivity.items():
     #     func_index = function_to_index[func]
@@ -165,7 +187,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 df_denpendence_graph = pd.DataFrame(dependence_graph, index = function_to_index, columns= function_to_index)
-plt.figure(figsize = (10,8))
+result = df_denpendence_graph.to_json(r"dependence_graph.json",orient='split')
+df_denpendence_graph = pd.read_json('dependence_graph.json', orient='split')
+
+
+
+plt.figure(figsize = (40,30))
+
 sns.heatmap(df_denpendence_graph, cmap = 'coolwarm')
-plt.savefig('/codit/dsl/savepic.png')
+plt.xlabel("next function", fontdict= {'size':70})
+plt.ylabel("previous function", fontdict= {'size':70})
+
+print('heatmap saved')
+plt.savefig('savepic.png')
+
+
+from json import loads, dumps
+
 
