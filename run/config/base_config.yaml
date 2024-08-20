@@ -51,7 +51,7 @@ replay_buffer:
   age_normalizer: 100
   num_policy_experiences: 90_000
   num_mutated_experiences: 10_000
-  mutated_train_tasks_file: './data/mutated_tasks_train_'
+  mutated_train_tasks_file: './data_preli/mutated_tasks_train_' # './data/mutated_tasks_train_'
   max_mutated_train_tasks: 19_200
   mutated_file_start: 9_600
   mutated_file_end: 19_200
@@ -100,13 +100,13 @@ data:
   n_val: 400
   n_test: 400
   train_split: 0.8
-  training_data_dir: './data/training/'
-  evaluation_data_dir: './data/evaluation/'
-  raw_training_data_dir: './data/raw/training/'
-  raw_evaluation_data_dir: './data/raw/evaluation/'
+  training_data_dir: './data_preli/training/' # './data/training/'
+  evaluation_data_dir: './data_preli/evaluation/' # './data/evaluation/'
+  raw_training_data_dir: './data_preli/raw/training/' # './data/raw/training/'
+  raw_evaluation_data_dir: './data_preli/raw/evaluation/' #'./data/raw/evaluation/'
   
-  split_keys_path: './data/split_keys.json'
-  data_dir: './data/'
+  split_keys_path: './data_preli/split_keys.json' #'./data/split_keys.json'
+  data_dir: './data_preli/' #'./data/'
 
 generator:
   sig_alarm: 0.1
