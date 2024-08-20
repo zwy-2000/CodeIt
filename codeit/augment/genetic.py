@@ -227,7 +227,7 @@ class TaskEvolver:
 
     def evolve(self, selected_task):
         # mutated_task = self.mutate_task(selected_task)
-        mutated_task = self.mutate_task2(selected_task)
+        mutated_task = self.mutate_task2(selected_task) # preliminary improvement or second improvement
         return mutated_task
 
     def initialise_population(self, task_keys, file_path, tasks=None):
@@ -608,7 +608,7 @@ class TaskEvolver:
                     type_to_primitive_constant_mapping=self.primitive_constants,
                 )
                 # mutation = program_mutator.mutate()
-                mutation = program_mutator.mutate2()
+                mutation = program_mutator.mutate2()  # preliminary improvement
                 # print("--------------------mutation-------------------", mutation)
                 exec(ast.unparse(program_mutator.program_ast), globals(), locals())
                 not_identity = False
