@@ -385,7 +385,10 @@ class TaskEvolver:
                         output = eval(f"solve_{task.task_key}_{new_child_id}(I)")
                         if output != example["output"]:
                             equivalent = False
+                        
+                        count_loop = 0
                         while output == I:
+                            count_loop = count_loop+1
                             print('___________loop to ensure different input output__________')
                             mutation_choice = "input"
                             mutation_results = self.mutate_input(example=example, program=program)
@@ -395,6 +398,8 @@ class TaskEvolver:
                             self.input_mutation_log += mutation_results["log"]
                             # print('--------input mutate --------', example_type)
                             if output != I:
+                                break
+                            if count_loop > 40:
                                 break
                         mutated_examples.append({"input": I, "output": output})
                     if example_type == "training_examples":
