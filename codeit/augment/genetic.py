@@ -386,6 +386,7 @@ class TaskEvolver:
                         if output != example["output"]:
                             equivalent = False
                         while output == I:
+                            print('___________loop to ensure different input output__________')
                             mutation_choice = "input"
                             mutation_results = self.mutate_input(example=example, program=program)
                             I = mutation_results["output"]["input"]
