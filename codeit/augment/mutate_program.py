@@ -5,6 +5,7 @@ import ast
 import copy
 import random
 import traceback
+import pandas as pd
 
 from codeit.augment.mutate_grid import valid_grid
 from codeit.augment.type_inference import (
@@ -142,10 +143,20 @@ class ProgramMutator:
                 assignments[self.memory_index - 1].value = new_node
         return mutation
 
+    def replace_by_two(self, func_to_replace): # *****
+        dependence_weigths = pd.read_json('/mutate_weights/dependence_graph.json', orient='split')
 
+        dsl_list = ...
+
+        function_to_indx = ...
+        return func1, func2
 
 
     def mutate3(self):
+
+        
+
+
 
         method_to_go = random.choices(["mutate","replace by two"], weights=[0.8, 0.2])[0]
 
@@ -208,6 +219,10 @@ class ProgramMutator:
             self.memory_index = assignments.index(node_to_amplify) + 1
 
             function_to_replace = node_to_amplify.value.func.id
+
+
+############################################################################################
+            ##  use a new func(): replace_by_two with the function to be replaced as 
             if mutation_choice == "replace_argument":
                 arg_to_replace_id = random.choice(range(len(node_to_amplify.value.args)))
                 arg_to_replace = node_to_amplify.value.args[arg_to_replace_id].id
