@@ -179,6 +179,10 @@ class TaskEvolver:
         self.arc_training = copy.copy(self.task_population)
         self.select_from_arc = select_from_arc
         self.sig_alarm = sig_alarm
+        self.mutated_count = None  # count the programs
+        self.mutate_threshold = 1000
+        self.task_population_2 = copy.copy(self.task_population)
+        self.arc_training_2 = copy.copy(self.arc_training)
 
     def execute_with_timeout(self, func, timeout, *args, **kwargs):
         if self.sig_alarm:
@@ -219,6 +223,14 @@ class TaskEvolver:
             if fitness > self.fitness_threshold:
                 self.task_population[mutated_task.task_key] = mutated_task
                 self.population_tree.add_program(mutated_task.task_key, selected_task.task_key)
+            if mutated_task.task_key in self.mutated_count.keys():
+                if self.mutated_count[mutated_task.task_key] < self.mutate_threshold:
+                    self.mutated_count[mutated_task.task_key] += 1
+                else:
+                    self.ruleout(task_key=mutated_task.task_key)
+            else:
+                self.mutated_count[mutated_task.task_key] = 1
+            
         else:
             self.timeout_log += f"evolve except: mutating task {selected_task.task_key} timed out\n"
             print(f"evolve except: mutating task {selected_task.task_key} timed out\n")
@@ -229,6 +241,22 @@ class TaskEvolver:
         # mutated_task = self.mutate_task(selected_task)
         mutated_task = self.mutate_task2(selected_task) # preliminary improvement or second improvement
         return mutated_task
+    
+    def init_count(self, threshold):
+        self.mutated_count = {}
+        self.mutate_threshold = threshold
+    
+    def ruleout(self, task_key):
+        if self.select_from_arc:
+            self.arc_training_2.pop(task_key)
+        else:
+            self.task_population_2.pop(task_key)
+        print(f' ---------{task_key} removed -----------')
+    
+    def init_tasks(self):
+        self.task_population_2 = copy.copy(self.task_population)
+        self.arc_training_2 = copy.copy(self.arc_training)
+
 
     def initialise_population(self, task_keys, file_path, tasks=None):
         print("initialising training population")
@@ -254,15 +282,15 @@ class TaskEvolver:
     def select(self, max_grid_size=None):
         """selects a task from the population to be mutated"""
         if self.select_from_arc:
-            return self.arc_training[random.choice(list(self.arc_training.keys()))]
+            return self.arc_training_2[random.choice(list(self.arc_training_2.keys()))]
         else:
             if max_grid_size:
                 filtered_task_population = filter_tasks_by_input_dimensions(
-                    self.task_population, max_rows=max_grid_size[0], max_columns=max_grid_size[1]
+                    self.task_population_2, max_rows=max_grid_size[0], max_columns=max_grid_size[1]
                 )
-                return self.task_population[random.choice(list(filtered_task_population.keys()))]
+                return self.task_population_2[random.choice(list(filtered_task_population.keys()))]
             else:
-                return self.task_population[random.choice(list(self.task_population.keys()))]
+                return self.task_population_2[random.choice(list(self.task_population_2.keys()))]
 
     def mutate_task(self, task):
         """mutates a task by either mutating the program or the input"""

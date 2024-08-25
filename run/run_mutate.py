@@ -162,13 +162,18 @@ def main(config: Any) -> None:
     if not mutation_baseline:
         program_sampler = ProgramSampler(data_path=config.data.data_dir)
 
+    mutate_threshold = int(log_chunk_size/400)+4  # mutate limit for each program
+
     for chunk in chunks:
         print(f"evolving chunk: {chunk}")
         generated_tasks_train = {}
+        task_evolver.init_count(threshold=mutate_threshold) # initialize count mutated, set threshold
+        task_evolver.init_tasks() # in every chunk, initialize task population
+
         for i in range(chunk, chunk + log_chunk_size):
             # genetic samples
             if mutation_baseline:
-                new_task = task_evolver.evolve_with_timeout(sig_alarm=config.generator.sig_alarm)
+                new_task = task_evolver.evolve_with_timeout(sig_alarm=config.generator.sig_alarm) 
                 if new_task:
                     new_task.parent_key = new_task.task_key.split("_")[0]
                     generated_tasks_train[new_task.task_key] = new_task.to_dict()
