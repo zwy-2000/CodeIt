@@ -162,7 +162,8 @@ def main(config: Any) -> None:
     if not mutation_baseline:
         program_sampler = ProgramSampler(data_path=config.data.data_dir)
 
-    mutate_threshold = int(log_chunk_size/400)+4  # mutate limit for each program
+    mutate_threshold = int(log_chunk_size/400) # mutate limit for each program
+    # mutate_threshold = 3  # mutate limit for each program
 
     for chunk in chunks:
         print(f"evolving chunk: {chunk}")
