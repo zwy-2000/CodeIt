@@ -226,6 +226,7 @@ class TaskEvolver:
             if mutated_task.task_key in self.mutated_count.keys():
                 if self.mutated_count[mutated_task.task_key] < self.mutate_threshold:
                     self.mutated_count[mutated_task.task_key] += 1
+                    print(f'program:{mutated_task.task_key} count: {self.mutated_count[mutated_task.task_key]}')
                 else:
                     self.ruleout(task_key=mutated_task.task_key)
             else:
