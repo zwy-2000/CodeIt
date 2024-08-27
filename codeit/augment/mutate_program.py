@@ -148,12 +148,12 @@ class ProgramMutator:
                 new_node = ast.parse(new_variable_value).body[0].value
                 assignments[self.memory_index - 1].value = new_node
                 # print("mutation:", mutation)
-        # print('mutation', mutation)
-        # print("program:", self.program)
-        # print("program_ast:", ast.unparse(self.program_ast))
+        print('mutation', mutation)
+        print("program:", self.program)
+        print("program_ast:", ast.unparse(self.program_ast))
         return mutation
 
-    def replace_by_two(self, func_to_replace): # *****
+    def amplify_into_two(self, func_to_replace): # *****
         dependence_weigths = pd.read_json('/mutate_weights/dependence_graph.json', orient='split')
 
         dsl_list = ...
@@ -168,7 +168,7 @@ class ProgramMutator:
 
 
 
-        method_to_go = random.choices(["mutate","replace by two"], weights=[0.8, 0.2])[0]
+        method_to_go = random.choices(["mutate","replace by two"], weights=[0.6, 0.4])[0]
 
         if method_to_go == "mutate":
         
@@ -214,6 +214,7 @@ class ProgramMutator:
                     new_function = self.replace_function(function_to_replace=function_to_replace)
                     assignments[self.memory_index - 1].value.func.id = new_function
                     mutation.append(("func", function_to_replace, new_function)) ##
+                else:
                     variable_to_replace = node_to_mutate.targets[0].id
                     # print("variable_to_replace:", variable_to_replace)
                     new_variable_value = self.replace_variable(variable_to_replace=variable_to_replace)
@@ -228,39 +229,10 @@ class ProgramMutator:
             node_to_amplify = random.choice(assignments)
             self.memory_index = assignments.index(node_to_amplify) + 1
 
+            amplified_node_1, amplified_node_2 = self.amplify_into_two(node_to_amplify)
+
             function_to_replace = node_to_amplify.value.func.id
 
-
-############################################################################################
-            ##  use a new func(): replace_by_two with the function to be replaced as 
-            if mutation_choice == "replace_argument":
-                arg_to_replace_id = random.choice(range(len(node_to_amplify.value.args)))
-                arg_to_replace = node_to_amplify.value.args[arg_to_replace_id].id
-                # print("arg_to_replace:", arg_to_replace)
-                new_arg, new_variable_mutation = self.replace_argument(arg_to_replace=arg_to_replace)
-                assignments[self.memory_index - 1].value.args[arg_to_replace_id].id = new_arg
-                if new_variable_mutation:
-                    mutation = ("arg", arg_to_replace, new_arg, new_variable_mutation)
-                else:
-                    mutation = ("arg", arg_to_replace, new_arg)
-            elif mutation_choice == "replace_function":
-                function_to_replace = node_to_amplify.value.func.id
-                # print("function_to_replace:", function_to_replace)
-                new_function = self.replace_function(function_to_replace=function_to_replace)
-                assignments[self.memory_index - 1].value.func.id = new_function
-                mutation = ("func", function_to_replace, new_function)
-            else:
-                variable_to_replace = node_to_amplify.targets[0].id
-                # print("variable_to_replace:", variable_to_replace)
-                new_variable_value = self.replace_variable(variable_to_replace=variable_to_replace)
-                mutation = (
-                    "var_def",
-                    f"{node_to_amplify.value.func.id}({', '.join([arg.id for arg in node_to_amplify.value.args])})",
-                    new_variable_value,
-                )
-                new_node = ast.parse(new_variable_value).body[0].value
-                assignments[self.memory_index - 1].value = new_node
-            # print("mutation:", mutation)
 
 
         return mutation
