@@ -89,14 +89,16 @@ class ProgramMutator:
         return mutation
     
     def mutate2(self):
-        # mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda = 2
-        mutation_node_weights = [0.36788, 0.18394, 0.06131] # Poisson lambda = 1
+        mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda = 2
+        # mutation_node_weights = [0.36788, 0.18394, 0.06131] # Poisson lambda = 1
 
         assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
         if len(assignments) < 4:
             n_nodes = 1
-        else:
+        elif len(assignments) <8:
             n_nodes = 3
+        else:
+            n_nodes = 5
 
         if n_nodes > 1:
             # n_weights = [w / sum(mutation_node_weights[:n_nodes]) for w in mutation_node_weights[:n_nodes]]
