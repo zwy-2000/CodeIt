@@ -647,7 +647,8 @@ class TaskEvolver:
                     type_to_primitive_constant_mapping=self.primitive_constants,
                 )
                 # mutation = program_mutator.mutate()
-                mutation = program_mutator.mutate2()  # preliminary improvement
+                # mutation = program_mutator.mutate2()  # preliminary improvement
+                mutation = program_mutator.mutate3()  # advanced improvement
                 # print("--------------------mutation-------------------", mutation)
                 exec(ast.unparse(program_mutator.program_ast), globals(), locals())
                 not_identity = False
@@ -670,9 +671,9 @@ class TaskEvolver:
                     "mutation": mutation,
                 }
             except:
-                # print('------------------ERROR--------------------------')
+                print('------------------ERROR--------------------------')
                 mutated_program_log += f"mutate program except:{traceback.format_exc()}\n"
-                # print(f"mutate program except:{traceback.format_exc()}\n")
+                print(f"mutate program except:{traceback.format_exc()}\n")
                 pass
 
 

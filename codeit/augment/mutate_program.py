@@ -89,16 +89,14 @@ class ProgramMutator:
         return mutation
     
     def mutate2(self):
-        mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda = 2
-        # mutation_node_weights = [0.36788, 0.18394, 0.06131] # Poisson lambda = 1
+        # mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda = 2
+        mutation_node_weights = [0.36788, 0.18394, 0.06131] # Poisson lambda = 1
 
         assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
         if len(assignments) < 4:
             n_nodes = 1
-        elif len(assignments) <8:
-            n_nodes = 3
         else:
-            n_nodes = 5
+            n_nodes = 3
 
         if n_nodes > 1:
             # n_weights = [w / sum(mutation_node_weights[:n_nodes]) for w in mutation_node_weights[:n_nodes]]
@@ -148,39 +146,41 @@ class ProgramMutator:
                 new_node = ast.parse(new_variable_value).body[0].value
                 assignments[self.memory_index - 1].value = new_node
                 # print("mutation:", mutation)
-        print('mutation', mutation)
-        print("program:", self.program)
-        print("program_ast:", ast.unparse(self.program_ast))
+        # print('mutation', mutation)
+        # print("program:", self.program)
+        # print("program_ast:", ast.unparse(self.program_ast))
         return mutation
 
-    def amplify_into_two(self, func_to_replace): # *****
+    def amplify_into_two(self, node_to_amplify): # *****
         dependence_weigths = pd.read_json('/mutate_weights/dependence_graph.json', orient='split')
 
-        dsl_list = ...
+        dsl_list = list(dependence_weigths.columns)
+
+        func_of_node = node_to_amplify.value.func.id
+
+        args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
+
+        print(func_of_node)
+        print(args_of_node)
 
         function_to_indx = ...
+        
         return func1, func2
 
 
     def mutate3(self):
-
-        
-
-
-
-        method_to_go = random.choices(["mutate","replace by two"], weights=[0.6, 0.4])[0]
+        method_to_go = random.choices(["mutate","replace by two"], weights=[0, 1])[0]
 
         if method_to_go == "mutate":
         
-            mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda == 2
+            # mutation_node_weights = [0.27067, 0.27067, 0.18045, 0.09022, 0.03609] # Poisson lambda == 2
+            mutation_node_weights = [0.36788, 0.18394, 0.06131] # Poisson lambda = 1
 
             assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
-            if len(assignments) < 2:
+            if len(assignments) < 4:
                 n_nodes = 1
-            elif len(assignments) < 5:
-                n_nodes = len(assignments)
             else:
-                n_nodes = 5
+                n_nodes = 3
 
             if n_nodes > 1:
                 n_weights = [w / sum(mutation_node_weights[:n_nodes]) for w in mutation_node_weights[:n_nodes]]
@@ -226,6 +226,7 @@ class ProgramMutator:
                     new_node = ast.parse(new_variable_value).body[0].value
                     assignments[self.memory_index - 1].value = new_node
         else:
+            assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
             node_to_amplify = random.choice(assignments)
             self.memory_index = assignments.index(node_to_amplify) + 1
 
