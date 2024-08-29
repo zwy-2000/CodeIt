@@ -187,8 +187,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 df_denpendence_graph = pd.DataFrame(dependence_graph, index = function_to_index, columns= function_to_index)
-result = df_denpendence_graph.to_json(r"dependence_graph.json",orient='split')
-df_denpendence_graph = pd.read_json('dependence_graph.json', orient='split')
+result = df_denpendence_graph.to_json(r"mutate_weights/dependence_graph.json",orient='split')
+df_denpendence_graph = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
 
 
 
@@ -199,7 +199,7 @@ plt.xlabel("next function", fontdict= {'size':70})
 plt.ylabel("previous function", fontdict= {'size':70})
 
 print('heatmap saved')
-plt.savefig('savepic.png')
+plt.savefig('mutate_weights/heatmap.png')
 
 
 from json import loads, dumps
