@@ -152,18 +152,24 @@ class ProgramMutator:
         return mutation
 
     def amplify_into_two(self, node_to_amplify): # *****
-        dependence_weigths = pd.read_json('/mutate_weights/dependence_graph.json', orient='split')
+
+        dependence_weigths = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
 
         dsl_list = list(dependence_weigths.columns)
+
+        function_to_indx = {func: index for index, func in enumerate(dsl_list)}
 
         func_of_node = node_to_amplify.value.func.id
 
         args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
 
-        print(func_of_node)
-        print(args_of_node)
+        function_type = self.type_inferer.type_dict[func_of_node][0]
 
-        function_to_indx = ...
+        print("func:",func_of_node)
+        print("args:", args_of_node)
+
+        print("func type:", function_type)
+
         
         return func1, func2
 
