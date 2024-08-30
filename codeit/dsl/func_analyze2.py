@@ -46,14 +46,28 @@ def extract_dsl_functions(file_path, input_dict, output_dict):
                 input_dict[input_type].append(func_name)
             else:
                 input_dict[input_type] = [func_name]
+        if "Any" not in input_types:
+            if "Any" in list(input_dict.keys()):
+                input_dict["Any"].append(func_name)
+            else:
+                input_dict["Any"] = [func_name]
         
         if output_type in list(output_dict.keys()):
             output_dict[output_type].append(func_name)
         else:
             output_dict[output_type] = [func_name]
-
+        if output_type != "Any":
+            if "Any" in list(output_dict.keys()):
+                output_dict["Any"].append(func_name)
+            else:
+                output_dict["Any"].append(func_name)
+    
 
         # dsl_functions.append((func_name, input_types, output_type))
+
+        list_ = input_dict["Any"]
+        list_ = list(dict.fromkeys(list_))
+        input_dict["Any"] = list_
 
     # return dsl_functions
     return input_dict, output_dict
@@ -91,6 +105,8 @@ def main():
     for key in output_type_func.keys():
         print("type:", key)
         print(output_type_func[key])
+    print(len(input_type_func["Any"]))
+    print(len(output_type_func["Any"]))
 
     
 
