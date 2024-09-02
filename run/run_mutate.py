@@ -112,14 +112,14 @@ def main(config: Any) -> None:
     # val_keys = split_keys["val"][: config.data.n_val]
     # train_keys = split_keys["train"][: config.data.n_train]
 
-    val_keys = split_keys["val"][: 2]
-    train_keys = split_keys["train"][: 2]
+    # val_keys = split_keys["val"][: 2]
+    # train_keys = split_keys["train"][: 2]
 
-    # val_keys = []
+    val_keys = []
     # list_key = [259, 268, 292, 297, 299, 300, 302, 304, 305, 307, 309]
-    # # train_keys = split_keys["train"][259, 268, 292, 297, 299, 300, 302, 304, 305, 307, 309]
+    # train_keys = split_keys["train"][259, 268, 292, 297, 299, 300, 302, 304, 305, 307, 309]
     # train_keys = [split_keys["train"][i] for i in list_key]
-
+    train_keys = split_keys["train"][99:100]
 
     # baseline params
     n_samples = config.baseline.n_samples

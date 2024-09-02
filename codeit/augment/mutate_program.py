@@ -150,27 +150,121 @@ class ProgramMutator:
         # print("program:", self.program)
         # print("program_ast:", ast.unparse(self.program_ast))
         return mutation
+    
+    def sample_two_func_amplified(self, desired_input_types, desired_output_type): # *****
+        dependence_weigths = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
+
+        # dsl_list = list(dependence_weigths.columns)
+        # function_to_indx = {func: index for index, func in enumerate(dsl_list)}
+
+
+        # print("desired_input_types", desired_input_types) # the desired input types for the first dsl
+        # print("desired_output_type", desired_output_type) # the desired output type for the second dsl
+
+        dsl_2_pool = self.general_type_to_primitive_function_mapping[desired_output_type]
+        # print("dsl_2_pool:", dsl_2_pool)
+        dsl_2_func = sum(dsl_2_pool.values(), []) # all possible dsl_2 candidates
+        # print("dsl_2_func:", dsl_2_func)
+
+
+        all_keys_flat = sum(dsl_2_pool.keys(), ())
+        dsl_2_input_pool = list(set(all_keys_flat)) # all possible input types for dsl_2 candidates
+
+        # print("dsl_2_input_pool:", dsl_2_input_pool)
+
+        dsl_1_pool = [self.general_type_to_primitive_function_mapping[key] for key in dsl_2_input_pool]
+        # print("dsl_1_pool:", dsl_1_pool)
+
+        # New pool for merged results
+        dsl_1_pool_filtered = {}
+
+        for d in dsl_1_pool:
+            # Filter keys that contain all elements in desired_input
+            for key, value in d.items():
+                if all(element in key for element in desired_input_types):
+                    # merge the filtered results into the final dictionary
+                    if key in dsl_1_pool_filtered:
+                        dsl_1_pool_filtered[key].extend(value)
+                    else:
+                        dsl_1_pool_filtered[key] = value
+
+        # filtering by the desired input for dsl_1
+        # print("dsl_1_pool_filtered:", dsl_1_pool_filtered)
+        dsl_1_func = sum(dsl_1_pool_filtered.values(), []) # all possible dsl_1 candidates
+        dsl_1_func = list(set(dsl_1_func)) # get only unique dsl_1 candidates
+        # print("dsl_1_func:", dsl_1_func)
+
+        possible_pairs = []
+        weights_of_pairs = []
+
+
+        for dsl_1 in dsl_1_func:
+            for dsl_2 in dsl_2_func:
+                dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl_1]['output']
+                dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl_2]['inputs']
+                if dsl_1_output_type in dsl_2_input_types:
+                    possible_pairs.append((dsl_1, dsl_2))
+                    weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.5)
+        
+        # print("possible_pairs", possible_pairs)
+        # print("weights_of_pairs", weights_of_pairs)
+
+        selected_pair = random.choices(possible_pairs, weights= weights_of_pairs, k=1)[0]
+        # print("selected pair:", selected_pair)
+
+        return selected_pair[0], selected_pair[1]
+
+
+
+
+
+
+
+
+
+
 
     def amplify_into_two(self, node_to_amplify): # *****
 
-        dependence_weigths = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
 
-        dsl_list = list(dependence_weigths.columns)
-
-        function_to_indx = {func: index for index, func in enumerate(dsl_list)}
-
-        func_of_node = node_to_amplify.value.func.id
-
-        args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
-
-        function_type = self.type_inferer.type_dict[func_of_node][0]
-
-        print("func:",func_of_node)
-        print("args:", args_of_node)
-
-        print("func type:", function_type)
 
         
+        func_of_node = node_to_amplify.value.func.id
+
+        # args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
+
+        # print("func:",func_of_node)
+        # print("args:", args_of_node)
+        desired_input_types = []
+        desired_output_type = self.primitive_function_to_general_type_mapping[func_of_node]["output"]
+        for i in range(len(node_to_amplify.value.args)):
+            if node_to_amplify.value.args[i].id not in self.primitive_constant_to_type_mapping.keys():
+                desired_input = node_to_amplify.value.args[i].id
+                desired_input_types.append(self.type_inferer.type_dict[desired_input][0])
+
+
+
+        # print('----------------type_dict-----------------')
+        # print(self.type_inferer.type_dict)
+        # print('------------primitive_constant_to_type_mapping--------------')
+        # print(self.primitive_constant_to_type_mapping)
+        # print('-----------------CONSTANT_TO_TYPE_MAPPING-------------------')
+        # print(CONSTANT_TO_TYPE_MAPPING)
+        # print('-----------------primitive_function_to_general_type_mapping--------------------')
+        # print(self.primitive_function_to_general_type_mapping)
+        # print('-------------------general_type_to_primitive_function_mapping-------------------------')
+        # print(self.general_type_to_primitive_function_mapping)
+        # print(self.general_type_to_primitive_function_mapping["Grid"])
+
+        func1, func2 = self.sample_two_func_amplified(desired_input_types,desired_output_type)
+
+        print("dsl 1:", func1)
+        print("dsl 2:", func2)
+
+        ### next will be try to update these two funcs in the program ast, also bump up the order of each x_n
+        
+
+
         return func1, func2
 
 
@@ -235,10 +329,14 @@ class ProgramMutator:
             assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
             node_to_amplify = random.choice(assignments)
             self.memory_index = assignments.index(node_to_amplify) + 1
+            function_to_amplify = node_to_amplify.value.func.id
+            if function_to_amplify.startswith('x'): # if starts with x, not amplify but replace func
+                new_function = self.replace_function(function_to_replace=function_to_amplify)
+                assignments[self.memory_index - 1].value.func.id = new_function
+                mutation.append(("func", function_to_amplify, new_function))
+            else:
+                amplified_node_1, amplified_node_2 = self.amplify_into_two(node_to_amplify)
 
-            amplified_node_1, amplified_node_2 = self.amplify_into_two(node_to_amplify)
-
-            function_to_replace = node_to_amplify.value.func.id
 
 
 
