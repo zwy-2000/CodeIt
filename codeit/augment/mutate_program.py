@@ -151,12 +151,14 @@ class ProgramMutator:
         # print("program_ast:", ast.unparse(self.program_ast))
         return mutation
     
-    def sample_two_func_amplified(self, desired_input_types, desired_output_type): # *****
+    def sample_two_func_amplified(self, desired_input_types, desired_output_type, existing_types): # *****
         dependence_weigths = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
 
         # dsl_list = list(dependence_weigths.columns)
         # function_to_indx = {func: index for index, func in enumerate(dsl_list)}
 
+        available_types = existing_types + list(self.type_to_primitive_constant_mapping.keys())
+        # print("available types:", available_types)
 
         # print("desired_input_types", desired_input_types) # the desired input types for the first dsl
         # print("desired_output_type", desired_output_type) # the desired output type for the second dsl
@@ -175,20 +177,21 @@ class ProgramMutator:
         dsl_1_pool = [self.general_type_to_primitive_function_mapping[key] for key in dsl_2_input_pool]
         # print("dsl_1_pool:", dsl_1_pool)
 
-        # New pool for merged results
         dsl_1_pool_filtered = {}
+        # filtering by the desired input and the available types for dsl_1
 
         for d in dsl_1_pool:
-            # Filter keys that contain all elements in desired_input
+            # Filter keys that contain all elements in desired_input_types and only have elements in available_types
             for key, value in d.items():
                 if all(element in key for element in desired_input_types):
-                    # merge the filtered results into the final dictionary
-                    if key in dsl_1_pool_filtered:
-                        dsl_1_pool_filtered[key].extend(value)
-                    else:
-                        dsl_1_pool_filtered[key] = value
+                    if all(element in available_types for element in key):
+                        # Merge the filtered results
+                        if key in dsl_1_pool_filtered:
+                            dsl_1_pool_filtered[key].extend(value)
+                        else:
+                            dsl_1_pool_filtered[key] = value
 
-        # filtering by the desired input for dsl_1
+
         # print("dsl_1_pool_filtered:", dsl_1_pool_filtered)
         dsl_1_func = sum(dsl_1_pool_filtered.values(), []) # all possible dsl_1 candidates
         dsl_1_func = list(set(dsl_1_func)) # get only unique dsl_1 candidates
@@ -202,9 +205,16 @@ class ProgramMutator:
             for dsl_2 in dsl_2_func:
                 dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl_1]['output']
                 dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl_2]['inputs']
-                if dsl_1_output_type in dsl_2_input_types:
-                    possible_pairs.append((dsl_1, dsl_2))
-                    weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.5)
+                if dsl_1_output_type in dsl_2_input_types: # the output type of dsl1 must be in the input types of dsl2
+                    if len(dsl_2_input_types) == 1: # if the only input type of dsl2 == output type of dsl1
+
+                        possible_pairs.append((dsl_1, dsl_2))
+                        weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.1)
+                    else: # if dsl2 has more input types
+                        other_input_types = [type_ for type_ in dsl_2_input_types if type_ != dsl_1_output_type]
+                        if all(type_ in available_types for type_ in other_input_types): # the rest of input types need to be in available types
+                            possible_pairs.append((dsl_1, dsl_2))
+                            weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.1)
         
         # print("possible_pairs", possible_pairs)
         # print("weights_of_pairs", weights_of_pairs)
@@ -219,28 +229,47 @@ class ProgramMutator:
 
 
 
-
-
-
-
-
-    def amplify_into_two(self, node_to_amplify): # *****
-
+    def amplify_into_two(self, node_to_amplify, assignments): # *****
 
 
         
         func_of_node = node_to_amplify.value.func.id
 
-        # args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
+        args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
 
-        # print("func:",func_of_node)
-        # print("args:", args_of_node)
+        print("func:",func_of_node)
+        print("args:", args_of_node)
         desired_input_types = []
+        desired_inputs_types_mapping = {} # the inputs that will be necessary after amplifying
         desired_output_type = self.primitive_function_to_general_type_mapping[func_of_node]["output"]
         for i in range(len(node_to_amplify.value.args)):
             if node_to_amplify.value.args[i].id not in self.primitive_constant_to_type_mapping.keys():
                 desired_input = node_to_amplify.value.args[i].id
-                desired_input_types.append(self.type_inferer.type_dict[desired_input][0])
+                desired_input_type = self.type_inferer.type_dict[desired_input][0]
+                desired_input_types.append(desired_input_type)
+                if desired_input_type in desired_inputs_types_mapping:
+                    desired_inputs_types_mapping[desired_input_type] += (desired_input,)
+                else:
+                    desired_inputs_types_mapping[desired_input_type]= (desired_input,)
+        node_target_no = int(node_to_amplify.targets[0].id[1:])
+        # print('node target:', node_target_no)
+        existing_types = ['Grid']
+        existing_types_to_targets = {'Grid':['I']}
+        if node_target_no > 1:
+            for i in range(node_target_no-1):
+                new_type = self.type_inferer.type_dict['x'+str(i+1)][0]
+                existing_types.append(new_type)
+                if new_type in existing_types_to_targets:
+                    existing_types_to_targets[new_type].append('x'+str(i+1))
+                else:
+                    existing_types_to_targets[new_type] = ['x'+str(i+1)]
+
+        existing_types = list(set(existing_types)) # this is the types that are available to use at the node to amplify
+        # print("existing types:", existing_types)
+        # print('existing_types_to_targets', existing_types_to_targets)
+
+
+        
 
 
 
@@ -255,21 +284,117 @@ class ProgramMutator:
         # print('-------------------general_type_to_primitive_function_mapping-------------------------')
         # print(self.general_type_to_primitive_function_mapping)
         # print(self.general_type_to_primitive_function_mapping["Grid"])
+        # print('------------type_to_primitive_constant_mapping--------------')
+        # print(self.type_to_primitive_constant_mapping)
 
-        func1, func2 = self.sample_two_func_amplified(desired_input_types,desired_output_type)
+        dsl1, dsl2 = self.sample_two_func_amplified(desired_input_types,desired_output_type, existing_types)
 
-        print("dsl 1:", func1)
-        print("dsl 2:", func2)
+        # print("desired input:", desired_input_types)
+        # print("desired output:", desired_output_type)
+        print("dsl 1:", dsl1)
+        print("dsl 2:", dsl2)
+        dsl_1_input_types = self.primitive_function_to_general_type_mapping[dsl1]['inputs']
+        dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl1]['output']
+        dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl1]['inputs']
+        # dsl_2_output_type = self.primitive_function_to_general_type_mapping[dsl2]['output']
 
         ### next will be try to update these two funcs in the program ast, also bump up the order of each x_n
+
+        print("program_ast:", ast.unparse(self.program_ast))
+        
+        # start idx = self.memory_index - 1
+        self.bump_up_variable_names(self.memory_index)
+
+        # new_line_1 = ast.Assign(
+        #     targets=[ast.Name(id='x0', ctx=ast.Store())],
+        #     value=ast.Call(func=ast.Name(id='righthalf', ctx=ast.Load()), args=[ast.Name(id='I', ctx=ast.Load())], keywords=[]),
+        #     lineno=0#,  # Setting lineno
+        #     # col_offset=4  # Setting col_offset
+        # )
+
+        # self.program_ast.body[0].body.insert(0, new_line_1)
+        new_target_1 = 'x'+str(node_target_no)
+        # new_target_2 = 'x'+str(node_target_no+1)
+
         
 
+        new_args = []
+        # print('desired inputs', desired_inputs_types_mapping
 
-        return func1, func2
+        ### get args for the first line
+        for input_type in dsl_1_input_types:
+            if len(sum(desired_inputs_types_mapping.values(), ()))>0: # if there's still desired input to be designated
+                if input_type not in desired_inputs_types_mapping: # if the type is not our desired type
+                    if input_type in existing_types_to_targets:
+                        new_args.append(random.choice(existing_types_to_targets[input_type]))
+                    else:
+                        new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+
+                elif desired_inputs_types_mapping[input_type] == (): # if target of this type is empty
+                    if input_type in existing_types_to_targets:
+                        new_args.append(random.choice(existing_types_to_targets[input_type]))
+                    else:
+                        new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+                else: # if the targets of this type is not empty
+                    arg = random.choice(desired_inputs_types_mapping[input_type]) # randomly select one from the available targets, normally there's only 1
+                    new_args.append(arg)
+                    temp_list = list(desired_inputs_types_mapping[input_type])
+                    temp_list.remove(arg)
+                    desired_inputs_types_mapping[input_type] = tuple(temp_list)
+            else:  # if all desired inputs are designated already
+                if input_type in existing_types_to_targets:
+                    new_args.append(random.choice(existing_types_to_targets[input_type]))
+                else:
+                    new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+
+
+        new_line_1 = ast.parse(f"{new_target_1} = {dsl1}({','.join(new_args)})")
+        self.program_ast.body[0].body.insert(node_target_no-1, new_line_1)
+
+        desired_inputs_types_mapping = {dsl_1_output_type: (new_target_1,)}
+        if dsl_1_output_type in existing_types_to_targets:
+            existing_types_to_targets[dsl_1_output_type].append(new_target_1)
+        else:
+            existing_types_to_targets[dsl_1_output_type] = [new_target_1]
+        
+
+        new_args = []
+
+        ### get args for the second line
+        for input_type in dsl_2_input_types:
+            if len(sum(desired_inputs_types_mapping.values(), ()))>0: # if there's still desired input to be designated
+                if input_type not in desired_inputs_types_mapping: # if the type is not our desired type
+                    if input_type in existing_types_to_targets:
+                        new_args.append(random.choice(existing_types_to_targets[input_type]))
+                    else:
+                        new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+                # elif desired_inputs_types_mapping[input_type] == (): # if target of this type is empty
+                #     if input_type in existing_types_to_targets:
+                #         new_args.append(random.choice(existing_types_to_targets[input_type]))
+                #     else:
+                #         new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+                else: # if the targets of this type is not empty
+                    arg = random.choice(desired_inputs_types_mapping[input_type]) # randomly select one from the available targets, normally there's only 1
+                    new_args.append(arg)
+                    desired_inputs_types_mapping[input_type] = ()
+            else:  # if all desired inputs are designated already
+                if input_type in existing_types_to_targets:
+                    new_args.append(random.choice(existing_types_to_targets[input_type]))
+                else:
+                    new_args.append(random.choice(self.type_to_primitive_constant_mapping[input_type]))
+
+        new_node = ast.parse(f"{dsl2}({','.join(new_args)})").body[0].value
+        assignments[node_target_no-1].value = new_node
+
+
+        print("program_ast:", ast.unparse(self.program_ast))
+
+        return dsl1, dsl2
 
 
     def mutate3(self):
         method_to_go = random.choices(["mutate","replace by two"], weights=[0, 1])[0]
+        mutation = []
 
         if method_to_go == "mutate":
         
@@ -289,7 +414,6 @@ class ProgramMutator:
                 n_mutation = 1
             # print("---------------n mutation:",n_mutation)
             
-            mutation = []
 
             nodes_to_mutate = random.sample(assignments, k = n_mutation)
             for node_to_mutate in nodes_to_mutate:
@@ -326,6 +450,7 @@ class ProgramMutator:
                     new_node = ast.parse(new_variable_value).body[0].value
                     assignments[self.memory_index - 1].value = new_node
         else:
+
             assignments = [node for node in ast.walk(self.program_ast) if isinstance(node, ast.Assign)]
             node_to_amplify = random.choice(assignments)
             self.memory_index = assignments.index(node_to_amplify) + 1
@@ -335,7 +460,8 @@ class ProgramMutator:
                 assignments[self.memory_index - 1].value.func.id = new_function
                 mutation.append(("func", function_to_amplify, new_function))
             else:
-                amplified_node_1, amplified_node_2 = self.amplify_into_two(node_to_amplify)
+                amplified_func_1, amplified_func_2 = self.amplify_into_two(node_to_amplify, assignments)
+                mutation.append(("func_amplified", function_to_amplify, amplified_func_1, amplified_func_2))
 
 
 
