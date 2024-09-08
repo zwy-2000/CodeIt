@@ -47,6 +47,9 @@ class ProgramMutator:
         self.type_to_primitive_constant_mapping = type_to_primitive_constant_mapping
         self.memory_index = None
         self.type_inferer.infer_type_from_ast(self.program_ast)
+        ##
+        self.dependence_weights = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
+
 
     def mutate(self):
         mutation_choice = random.choices(
@@ -152,9 +155,9 @@ class ProgramMutator:
         return mutation
     
     def sample_two_func_amplified(self, desired_input_types, desired_output_type, existing_types): # *****
-        dependence_weigths = pd.read_json('mutate_weights/dependence_graph.json', orient='split')
+        dependence_weights = self.dependence_weights
 
-        # dsl_list = list(dependence_weigths.columns)
+        # dsl_list = list(dependence_weights.columns)
         # function_to_indx = {func: index for index, func in enumerate(dsl_list)}
 
         available_types = existing_types + list(self.type_to_primitive_constant_mapping.keys())
@@ -164,32 +167,43 @@ class ProgramMutator:
         # print("desired_output_type", desired_output_type) # the desired output type for the second dsl
 
         dsl_2_pool = self.general_type_to_primitive_function_mapping[desired_output_type]
-        # print("dsl_2_pool:", dsl_2_pool)
-        dsl_2_func = sum(dsl_2_pool.values(), []) # all possible dsl_2 candidates
+        print("dsl_2_pool:", dsl_2_pool)
+        # dsl_2_func = sum(dsl_2_pool.values(), []) # all possible dsl_2 candidates
+        dsl_2_func = [item for sublist in dsl_2_pool.values() for item in sublist]  #### ****
+        
+
         # print("dsl_2_func:", dsl_2_func)
 
 
         all_keys_flat = sum(dsl_2_pool.keys(), ())
         dsl_2_input_pool = list(set(all_keys_flat)) # all possible input types for dsl_2 candidates
+        if 'ContainerContainer' in dsl_2_input_pool:
+            dsl_2_input_pool.remove('ContainerContainer')
 
         # print("dsl_2_input_pool:", dsl_2_input_pool)
 
         dsl_1_pool = [self.general_type_to_primitive_function_mapping[key] for key in dsl_2_input_pool]
         # print("dsl_1_pool:", dsl_1_pool)
 
-        dsl_1_pool_filtered = {}
-        # filtering by the desired input and the available types for dsl_1
+        # dsl_1_pool_filtered = {}
+        # # filtering by the desired input and the available types for dsl_1
 
-        for d in dsl_1_pool:
-            # Filter keys that contain all elements in desired_input_types and only have elements in available_types
-            for key, value in d.items():
-                if all(element in key for element in desired_input_types):
-                    if all(element in available_types for element in key):
-                        # Merge the filtered results
-                        if key in dsl_1_pool_filtered:
-                            dsl_1_pool_filtered[key].extend(value)
-                        else:
-                            dsl_1_pool_filtered[key] = value
+        # for d in dsl_1_pool:
+        #     # Filter keys that contain all elements in desired_input_types and only have elements in available_types
+        #     for key, value in d.items():
+        #         if all(element in key for element in desired_input_types):
+        #             if all(element in available_types for element in key):
+        #                 # Merge the filtered results
+        #                 if key in dsl_1_pool_filtered:
+        #                     dsl_1_pool_filtered[key].extend(value)
+        #                 else:
+        #                     dsl_1_pool_filtered[key] = value
+
+        dsl_1_pool_filtered = {key: value for d in dsl_1_pool  # optimized
+                        for key, value in d.items() 
+                        if all(element in key for element in desired_input_types) and 
+                           all(element in available_types for element in key)}
+
 
 
         # print("dsl_1_pool_filtered:", dsl_1_pool_filtered)
@@ -201,23 +215,38 @@ class ProgramMutator:
         weights_of_pairs = []
 
 
-        for dsl_1 in dsl_1_func:
-            for dsl_2 in dsl_2_func:
-                dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl_1]['output']
-                dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl_2]['inputs']
-                if dsl_1_output_type in dsl_2_input_types: # the output type of dsl1 must be in the input types of dsl2
-                    if len(dsl_2_input_types) == 1: # if the only input type of dsl2 == output type of dsl1
+        # for dsl_1 in dsl_1_func:
+        #     for dsl_2 in dsl_2_func:
+        #         dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl_1]['output']
+        #         dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl_2]['inputs']
+        #         if dsl_1_output_type in dsl_2_input_types: # the output type of dsl1 must be in the input types of dsl2
+        #             if len(dsl_2_input_types) == 1: # if the only input type of dsl2 == output type of dsl1
 
-                        possible_pairs.append((dsl_1, dsl_2))
-                        weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.1)
-                    else: # if dsl2 has more input types
-                        other_input_types = [type_ for type_ in dsl_2_input_types if type_ != dsl_1_output_type]
-                        if all(type_ in available_types for type_ in other_input_types): # the rest of input types need to be in available types
-                            possible_pairs.append((dsl_1, dsl_2))
-                            weights_of_pairs.append(dependence_weigths.loc[dsl_1, dsl_2]+0.1)
+        #                 possible_pairs.append((dsl_1, dsl_2))
+        #                 weights_of_pairs.append(dependence_weights.loc[dsl_1, dsl_2]+0.1)
+        #             else: # if dsl2 has more input types
+        #                 other_input_types = [type_ for type_ in dsl_2_input_types if type_ != dsl_1_output_type]
+        #                 if all(type_ in available_types for type_ in other_input_types): # the rest of input types need to be in available types
+        #                     possible_pairs.append((dsl_1, dsl_2))
+        #                     weights_of_pairs.append(dependence_weights.loc[dsl_1, dsl_2]+0.1)
         
+
+        for dsl_1 in dsl_1_func:
+            dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl_1]['output']
+            for dsl_2 in dsl_2_func:
+                dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl_2]['inputs']
+                if dsl_1_output_type in dsl_2_input_types:
+                    if len(dsl_2_input_types) == 1 or all(t in available_types for t in dsl_2_input_types if t != dsl_1_output_type):
+                        possible_pairs.append((dsl_1, dsl_2))
+                        weights_of_pairs.append(dependence_weights.loc[dsl_1, dsl_2] + 0.1) ### optimized
+
+
+
+
         # print("possible_pairs", possible_pairs)
         # print("weights_of_pairs", weights_of_pairs)
+
+        print(len(possible_pairs), len(weights_of_pairs))
 
         selected_pair = random.choices(possible_pairs, weights= weights_of_pairs, k=1)[0]
         # print("selected pair:", selected_pair)
@@ -251,7 +280,12 @@ class ProgramMutator:
                     desired_inputs_types_mapping[desired_input_type] += (desired_input,)
                 else:
                     desired_inputs_types_mapping[desired_input_type]= (desired_input,)
-        node_target_no = int(node_to_amplify.targets[0].id[1:])
+        # print('target',node_to_amplify.targets[0].id)
+        # print(len(assignments))
+        if node_to_amplify.targets[0].id.startswith('x'):
+            node_target_no = int(node_to_amplify.targets[0].id[1:])
+        else:
+            node_target_no = len(assignments)
         # print('node target:', node_target_no)
         existing_types = ['Grid']
         existing_types_to_targets = {'Grid':['I']}
@@ -295,7 +329,7 @@ class ProgramMutator:
         print("dsl 2:", dsl2)
         dsl_1_input_types = self.primitive_function_to_general_type_mapping[dsl1]['inputs']
         dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl1]['output']
-        dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl1]['inputs']
+        dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl2]['inputs']
         # dsl_2_output_type = self.primitive_function_to_general_type_mapping[dsl2]['output']
 
         ### next will be try to update these two funcs in the program ast, also bump up the order of each x_n
@@ -389,7 +423,8 @@ class ProgramMutator:
 
         print("program_ast:", ast.unparse(self.program_ast))
 
-        return dsl1, dsl2
+        return dsl1, dsl2 ## this part might needs optimization to make it run faster
+    
 
 
     def mutate3(self):
