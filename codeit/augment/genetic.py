@@ -215,9 +215,21 @@ class TaskEvolver:
         self.timed_out = False
         selected_task = self.select()
         print(selected_task.task_key)
+        # n_line = selected_task.program_lines.count('\n')
+        # if n_line> 20:
+        #     time_coef = 3
+        # elif n_line> 40:
+        #     time_coef = 5
+        # elif n_line>60:
+        #     time_coef = 10
+        # else:
+        #     time_coef = 1
         mutated_task = self.execute_with_timeout(
             self.evolve, timeout=sig_alarm, selected_task=selected_task
         )
+        # mutated_task = self.execute_with_timeout( 
+        #     self.evolve, timeout=sig_alarm*time_coef, selected_task=selected_task  # time coefficient added
+        # )
         if mutated_task:
             fitness = self.fitness_function(mutated_task, selected_task)
             if fitness > self.fitness_threshold:
@@ -432,7 +444,7 @@ class TaskEvolver:
                             # print('--------input mutate --------', example_type)
                             if output != I:
                                 break
-                            if count_loop > 40:
+                            if count_loop > 20:
                                 break
                         mutated_examples.append({"input": I, "output": output})
                     if example_type == "training_examples":
@@ -671,9 +683,9 @@ class TaskEvolver:
                     "mutation": mutation,
                 }
             except:
-                print('------------------ERROR--------------------------')
+                # print('------------------ERROR--------------------------')
                 mutated_program_log += f"mutate program except:{traceback.format_exc()}\n"
-                print(f"mutate program except:{traceback.format_exc()}\n")
+                # print(f"mutate program except:{traceback.format_exc()}\n")
                 pass
 
 

@@ -153,6 +153,15 @@ class ProgramMutator:
         # print("program:", self.program)
         # print("program_ast:", ast.unparse(self.program_ast))
         return mutation
+
+
+    def add_to_pool(self, dsl_2_pool, add_pool):
+        for key in add_pool.keys():
+            if key in dsl_2_pool:
+                dsl_2_pool[key] += add_pool[key]
+            else:
+                dsl_2_pool[key] = add_pool[key]
+
     
     def sample_two_func_amplified(self, desired_input_types, desired_output_type, existing_types): # *****
         dependence_weights = self.dependence_weights
@@ -167,7 +176,45 @@ class ProgramMutator:
         # print("desired_output_type", desired_output_type) # the desired output type for the second dsl
 
         dsl_2_pool = self.general_type_to_primitive_function_mapping[desired_output_type]
-        print("dsl_2_pool:", dsl_2_pool)
+        # print('before union types:',dsl_2_pool)
+
+        # if desired_output_type == 'Piece':   #Grid, Patch, Object, Indices
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Grid'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Patch'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Object'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Indices'])
+        # elif desired_input_types == 'Element':   #  Object, Grid
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Object'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Grid'])
+        # elif desired_input_types == 'Patch':   #  Object, Indices / Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Object'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Indices'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Piece'])
+        # elif desired_input_types == 'Object':   #  Patch, Element, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Patch'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Element'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Piece'])
+        # elif desired_input_types == 'Indices':   #  Patch, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Patch'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Piece'])
+        # elif desired_input_types == 'Grid':   #  Element, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Element'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Piece'])
+        # elif desired_input_types == 'Numerical':   #  Element, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Integer'])
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['IntegerTuple'])
+        # elif desired_input_types == 'Integer':   #  Element, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Numerical'])
+        # elif desired_input_types == 'IntegerTuple':   #  Element, Piece
+        #     dsl_2_pool = self.add_to_pool(dsl_2_pool, self.general_type_to_primitive_function_mapping['Numerical'])
+
+        # this can be optimized by moving it outside of the loop
+        
+        # print('after union types:',dsl_2_pool)
+
+
+
+        # print("dsl_2_pool:", dsl_2_pool)
         # dsl_2_func = sum(dsl_2_pool.values(), []) # all possible dsl_2 candidates
         dsl_2_func = [item for sublist in dsl_2_pool.values() for item in sublist]  #### ****
         
@@ -203,10 +250,65 @@ class ProgramMutator:
                         for key, value in d.items() 
                         if all(element in key for element in desired_input_types) and 
                            all(element in available_types for element in key)}
+        
+        # second optimization so that it ensures union types
+        # dsl_1_pool_filtered = {
+        #             key: value
+        #             for d in dsl_1_pool  # optimized
+        #             for key, value in d.items()
+        #             if all(
+        #                 element in key or
+        #                 (element == 'Grid' and 'Piece' in key) or
+        #                 (element == 'Grid' and 'Element' in key) or
+        #                 (element == 'Object' and 'Patch' in key) or
+        #                 (element == 'Object' and 'Element' in key) or
+        #                 (element == 'Object' and 'Piece' in key) or
+        #                 (element == 'Indices' and 'Patch' in key) or
+        #                 (element == 'Indices' and 'Piece' in key) or
+        #                 (element == 'Patch' and 'Piece' in key) or
+        #                 (element == 'Patch' and 'Object' in key) or
+        #                 (element == 'Patch' and 'Indices' in key) or
+        #                 (element == 'Piece' and 'Grid' in key) or
+        #                 (element == 'Piece' and 'Patch' in key) or
+        #                 (element == 'Piece' and 'Indices' in key) or
+        #                 (element == 'Piece' and 'Object' in key) or
+        #                 (element == 'Element' and 'Object' in key) or
+        #                 (element == 'Element' and 'Grid' in key) or
+        #                 (element == 'Integer' and 'Numerical' in key) or
+        #                 (element == 'IntegerTuple' and 'Numerical' in key) or
+        #                 (element == 'Numerical' and 'Integer' in key) or
+        #                 (element == 'Numerical' and 'IntegerTuple' in key) 
+        #                 for element in desired_input_types
+        #             ) and all(element in available_types or
+        #                 (element == 'Grid' and 'Piece' in available_types) or
+        #                 (element == 'Grid' and 'Element' in available_types) or
+        #                 (element == 'Object' and 'Patch' in available_types) or
+        #                 (element == 'Object' and 'Element' in available_types) or
+        #                 (element == 'Object' and 'Piece' in available_types) or
+        #                 (element == 'Indices' and 'Patch' in available_types) or
+        #                 (element == 'Indices' and 'Piece' in available_types) or
+        #                 (element == 'Patch' and 'Piece' in available_types) or
+        #                 (element == 'Patch' and 'Object' in available_types) or
+        #                 (element == 'Patch' and 'Indices' in available_types) or
+        #                 (element == 'Piece' and 'Grid' in available_types) or
+        #                 (element == 'Piece' and 'Patch' in available_types) or
+        #                 (element == 'Piece' and 'Indices' in available_types) or
+        #                 (element == 'Piece' and 'Object' in available_types) or
+        #                 (element == 'Element' and 'Object' in available_types) or
+        #                 (element == 'Element' and 'Grid' in available_types) or
+        #                 (element == 'Integer' and 'Numerical' in available_types) or
+        #                 (element == 'IntegerTuple' and 'Numerical' in available_types) or
+        #                 (element == 'Numerical' and 'Integer' in available_types) or
+        #                 (element == 'Numerical' and 'IntegerTuple' in available_types) for element in key)
+        #         }
+
+        # print("desired_input_types:", desired_input_types)
+        # print("available_types:", available_types)
 
 
 
         # print("dsl_1_pool_filtered:", dsl_1_pool_filtered)
+
         dsl_1_func = sum(dsl_1_pool_filtered.values(), []) # all possible dsl_1 candidates
         dsl_1_func = list(set(dsl_1_func)) # get only unique dsl_1 candidates
         # print("dsl_1_func:", dsl_1_func)
@@ -266,8 +368,8 @@ class ProgramMutator:
 
         args_of_node = [node_to_amplify.value.args[i].id for i in range(len(node_to_amplify.value.args))]
 
-        print("func:",func_of_node)
-        print("args:", args_of_node)
+        # print("func:",func_of_node)
+        # print("args:", args_of_node)
         desired_input_types = []
         desired_inputs_types_mapping = {} # the inputs that will be necessary after amplifying
         desired_output_type = self.primitive_function_to_general_type_mapping[func_of_node]["output"]
@@ -325,8 +427,8 @@ class ProgramMutator:
 
         # print("desired input:", desired_input_types)
         # print("desired output:", desired_output_type)
-        print("dsl 1:", dsl1)
-        print("dsl 2:", dsl2)
+        # print("dsl 1:", dsl1)
+        # print("dsl 2:", dsl2)
         dsl_1_input_types = self.primitive_function_to_general_type_mapping[dsl1]['inputs']
         dsl_1_output_type = self.primitive_function_to_general_type_mapping[dsl1]['output']
         dsl_2_input_types = self.primitive_function_to_general_type_mapping[dsl2]['inputs']
@@ -334,7 +436,7 @@ class ProgramMutator:
 
         ### next will be try to update these two funcs in the program ast, also bump up the order of each x_n
 
-        print("program_ast:", ast.unparse(self.program_ast))
+        # print("program_ast:", ast.unparse(self.program_ast))
         
         # start idx = self.memory_index - 1
         self.bump_up_variable_names(self.memory_index)
@@ -421,7 +523,7 @@ class ProgramMutator:
         assignments[node_target_no-1].value = new_node
 
 
-        print("program_ast:", ast.unparse(self.program_ast))
+        # print("program_ast:", ast.unparse(self.program_ast))
 
         return dsl1, dsl2 ## this part might needs optimization to make it run faster
     
