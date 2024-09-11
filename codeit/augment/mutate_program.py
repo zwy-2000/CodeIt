@@ -348,7 +348,7 @@ class ProgramMutator:
         # print("possible_pairs", possible_pairs)
         # print("weights_of_pairs", weights_of_pairs)
 
-        print(len(possible_pairs), len(weights_of_pairs))
+        # print(len(possible_pairs), len(weights_of_pairs))
 
         selected_pair = random.choices(possible_pairs, weights= weights_of_pairs, k=1)[0]
         # print("selected pair:", selected_pair)
