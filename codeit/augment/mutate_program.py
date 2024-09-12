@@ -530,7 +530,7 @@ class ProgramMutator:
 
 
     def mutate3(self):
-        method_to_go = random.choices(["mutate","replace by two"], weights=[0, 1])[0]
+        method_to_go = random.choices(["mutate","replace by two"], weights=[0.5, 0.5])[0]
         mutation = []
 
         if method_to_go == "mutate":
