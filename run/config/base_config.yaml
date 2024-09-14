@@ -10,7 +10,7 @@ concept_arc: False
 combined_concept_and_eval: False
 
 baseline:
-  n_samples: 19_200 # 1_000_000
+  n_samples: 38400 #19_200 # 1_000_000
   save_chunk_size: 9_600
   log_chunk_size: 9_600
   validation_set: False
