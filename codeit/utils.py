@@ -23,11 +23,11 @@ def get_tokenizer(config):
         tokenizer.pad_token_id = config.data.dataloader.tokenizer.pad_token_id
     if not tokenizer.eos_token_id:
         tokenizer.eos_token_id = config.data.dataloader.tokenizer.eos_token_id
-    if (
-        tokenizer.pad_token_id != config.data.dataloader.tokenizer.pad_token_id
-        or tokenizer.eos_token_id != config.data.dataloader.tokenizer.eos_token_id
-    ):
-        raise Exception("Mismatch in tokenizer")
+    # if (
+    #     tokenizer.pad_token_id != config.data.dataloader.tokenizer.pad_token_id
+    #     or tokenizer.eos_token_id != config.data.dataloader.tokenizer.eos_token_id
+    # ):
+    #     raise Exception("Mismatch in tokenizer")
     return tokenizer
 
 

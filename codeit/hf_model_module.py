@@ -12,6 +12,8 @@ from transformers import T5Config
 from codeit.typing_custom import TensorType
 from codeit.utils import get_class, get_tokenizer
 
+import torch
+from safetensors.torch import load_file
 
 def get_model(cls, name, cache_dir):
     model_class = get_class(cls)
@@ -59,6 +61,17 @@ class HFModule(pl.LightningModule):
                 self.transformer = model_class.from_config(my_config)
             except:
                 self.transformer = model_class(my_config)
+
+        # Load SafeTensors file
+        safetensor_path = '/home/wzhu/CodeIt/data/model.safetensors'
+        state_dict = load_file(safetensor_path)
+        # state_dict = {k: torch.tensor(v) for k, v in safe_tensor_data.items()}
+        
+        # Load state_dict into the model
+        self.transformer.load_state_dict(state_dict, strict=False)
+        print("Weights loaded from SafeTensors file.")
+
+
 
     def forward(
         self,
