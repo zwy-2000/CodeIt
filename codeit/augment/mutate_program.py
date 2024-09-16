@@ -340,7 +340,7 @@ class ProgramMutator:
                 if dsl_1_output_type in dsl_2_input_types:
                     if len(dsl_2_input_types) == 1 or all(t in available_types for t in dsl_2_input_types if t != dsl_1_output_type):
                         possible_pairs.append((dsl_1, dsl_2))
-                        weights_of_pairs.append(dependence_weights.loc[dsl_1, dsl_2] + 0.1) ### optimized
+                        weights_of_pairs.append(dependence_weights.loc[dsl_1, dsl_2] + 0.001) ### optimized
 
 
 
@@ -530,7 +530,7 @@ class ProgramMutator:
 
 
     def mutate3(self):
-        method_to_go = random.choices(["mutate","replace by two"], weights=[0.5, 0.5])[0]
+        method_to_go = random.choices(["mutate","replace by two"], weights=[0, 1])[0]
         mutation = []
 
         if method_to_go == "mutate":
