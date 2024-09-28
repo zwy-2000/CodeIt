@@ -21,7 +21,7 @@ for train_key in train_keys:
 
 
 for val_key in val_keys:
-    with open("data/training/"+train_key+".json") as json_file:
+    with open("data/training/"+val_key+".json") as json_file:
         item = json.load(json_file)
         line_count.append(item['program'].count('\n'))
         if item['program'].count('\n')>59:
