@@ -109,8 +109,8 @@ def main(config: Any) -> None:
     with open(config.data.split_keys_path, "r") as f:
         split_keys = json.load(f)
 
-    val_keys = split_keys["val"][: config.data.n_val]
-    train_keys = split_keys["train"][: config.data.n_train]
+    # val_keys = split_keys["val"][: config.data.n_val]
+    # train_keys = split_keys["train"][: config.data.n_train]
 
     # val_keys = split_keys["val"][5: 7]
     # train_keys = split_keys["train"][5: 7]
@@ -119,6 +119,16 @@ def main(config: Any) -> None:
     # list_key = [259, 268, 292, 297, 299, 300, 302, 304, 305, 307, 309]
     # train_keys = [split_keys["train"][i] for i in list_key]
     # train_keys = split_keys["train"][99:100]
+
+    list_train = [2, 3, 6, 8, 9, 12, 13, 18, 21, 22, 23, 27, 28, 30, 32, 33, 34, 35, 37, 38, 44, 45, 47, 52, 55, 56, 58, 60, 65, 66, 69, 70,
+                   73, 82, 87, 90, 92, 93, 95, 98, 102, 103, 108, 116, 126, 128, 130, 135, 137, 139, 141, 142, 144, 146, 148, 150, 152, 157, 
+                   169, 170, 178, 186, 189, 190, 191, 196, 197, 198, 202, 204, 206, 207, 209, 213, 216, 218, 222, 226, 227, 232, 234, 236, 238, 
+                   242, 245, 246, 249, 253, 256, 257, 258, 259, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 278, 279, 281, 283, 284, 
+                   286, 290, 291, 292, 293, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 307, 308, 309, 310]
+    list_val = [2, 6, 8, 12, 16, 17, 19, 26, 27, 28, 31, 33, 38, 43, 50, 61, 62, 65, 67, 68, 71, 73, 75, 76, 77, 78, 80, 83, 84, 85, 87, 88]
+
+    train_keys = [split_keys["train"][i] for i in list_train]
+    val_keys = [split_keys["val"][i] for i in list_val]
 
     # baseline params
     n_samples = config.baseline.n_samples

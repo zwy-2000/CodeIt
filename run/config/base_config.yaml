@@ -109,7 +109,7 @@ data:
   data_dir: './data/'
 
 generator:
-  sig_alarm: 0.1
+  sig_alarm: 1 #0.1
   phi_program: 1.0
   phi_var: 0.5
   phi_func: 0.25
