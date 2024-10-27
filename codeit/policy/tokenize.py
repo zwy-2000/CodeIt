@@ -29,6 +29,30 @@ def sparse_grid_text_encoder(grid):
     return grid_text.strip()
 
 
+### new
+def sparse_grid_text_encoder_2(grid):
+    grid_size = get_grid_size(grid)
+    colour_indices = {}
+    try:
+        background_colour = mostcolor(grid)
+    except:
+        if all(not x for x in grid):
+            return "empty"
+    colours = set(palette(grid))
+    colours.remove(background_colour)
+    for colour in colours:
+        indices = set(ofcolor(grid, colour))
+        integer = [f"{i},{j}" for i, j in indices]
+        colour_indices[colour] = " ".join(integer)
+    background_colour = bgcolor_text(background_color=background_colour)
+    grid_text = f"{grid_size[0]}x{grid_size[1]} bg={background_colour} "
+    for colour, indices in colour_indices.items():
+        colour = bgcolor_text(colour)
+        grid_text += f"{colour}={indices} "
+    return grid_text.strip()
+
+
+
 def sparse_grid_text_decoder(grid_text):
     def parse_string(input_str):
         grid_size_pattern = r"(\d+)x(\d+)"
@@ -68,13 +92,16 @@ def sparse_grid_text_decoder(grid_text):
 
 
 def create_dataset(tasks, n_examples, sparse=True, text_encoder=None):
-    data = {"task_id": [], "program": [], "initial_states": [], "terminal_states": []}
+    # data = {"task_id": [], "program": [], "initial_states": [], "terminal_states": []}
+    data = {"task_id": [], "program": [], "sparse_task": []}
     for task in tasks.values():
-        entry = create_dataset_entry(task, n_examples, sparse=sparse)
+        # entry = create_dataset_entry(task, n_examples, sparse=sparse)
+        entry = create_dataset_entry_2(task, n_examples, sparse=sparse)
         data["task_id"].append(entry["task_id"])
         data["program"].append(entry["program"])
-        data["initial_states"].append(entry["initial_states"])
-        data["terminal_states"].append(entry["terminal_states"])
+        # data["initial_states"].append(entry["initial_states"]) ########## where the problem happens
+        # data["terminal_states"].append(entry["terminal_states"])
+        data["sparse_task"].append(entry["sparse_task"])
     data = datasets.Dataset.from_dict(data)
     return data
 
@@ -114,6 +141,46 @@ def create_dataset_entry(task, n_examples, sparse=True):
     }
 
 
+### new
+def create_dataset_entry_2(task, n_examples, sparse=True):
+    if sparse:
+        # initial_states = "|".join(
+        #     [
+        #         sparse_grid_text_encoder_2(example["input"])
+        #         for example in task.training_examples[:n_examples]
+        #     ]
+        # )
+        # terminal_states = "|".join(
+        #     [
+        #         sparse_grid_text_encoder_2(example["output"])
+        #         for example in task.training_examples[:n_examples]
+        #     ]
+        # )
+        sparse_task = ""
+        for example in task.training_examples[:n_examples]:
+            sparse_task += "new "+ sparse_grid_text_encoder_2(example["input"])+'|'+sparse_grid_text_encoder_2(example["output"])
+    else:
+        initial_states = "|".join(
+            [
+                grid_to_colored_text(example["input"])
+                for example in task.training_examples[:n_examples]
+            ]
+        )
+        terminal_states = "|".join(
+            [
+                grid_to_colored_text(example["output"])
+                for example in task.training_examples[:n_examples]
+            ]
+        )
+    return {
+        "task_id": task.task_key,
+        "program": task.program_lines,
+        # "initial_states": initial_states,
+        # "terminal_states": terminal_states,
+        "sparse_task": sparse_task
+    }
+
+
 def tokenize_inputs(dataset_entry, tokenizer, input_state_max):
     input_ids = (
         tokenizer.encode(dataset_entry["initial_states"])[:-1][:input_state_max]
@@ -125,9 +192,22 @@ def tokenize_inputs(dataset_entry, tokenizer, input_state_max):
     return input_ids
 
 
+
+### new
+def tokenize_inputs_2(dataset_entry, tokenizer, input_state_max):
+    input_ids = (
+        tokenizer.encode(dataset_entry["sparse_task"], add_special_tokens=False)[
+            : (input_state_max*2 - 1)
+        ]
+    )
+    return input_ids
+
+
+
 def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tokens):
     example = {}
-    example["input_ids"] = tokenize_inputs(dataset_entry, tokenizer, input_state_max)
+    # example["input_ids"] = tokenize_inputs(dataset_entry, tokenizer, input_state_max)
+    example["input_ids"] = tokenize_inputs_2(dataset_entry, tokenizer, input_state_max)    
     example["attention_mask"] = [1] * len(example["input_ids"])
     example["labels"] = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
         :max_tokens
@@ -141,7 +221,8 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
 def tokenize_task(
     task, tokenizer, n_examples, input_state_max, max_tokens, sparse=True, text_encoder=None
 ):
-    entry = create_dataset_entry(task, n_examples=n_examples, sparse=sparse)
+    # entry = create_dataset_entry(task, n_examples=n_examples, sparse=sparse)
+    entry = create_dataset_entry_2(task, n_examples=n_examples, sparse=sparse) ## updated tokenization
     return tokenize_simple_seq_2_seq(
         tokenizer=tokenizer,
         dataset_entry=entry,
@@ -174,3 +255,23 @@ def grid_to_colored_text(grid):
         9: "black",
     }
     return "\n".join("".join(color_map[num] for num in row) for row in grid)
+
+
+def bgcolor_text(background_color):
+    color_map = {
+        0: "\u2581Red",
+        1: "\u2581Green",
+        2: "\u2581Blue",
+        3: "\u2581Yellow",
+        4: "\u2581Orange",
+        5: "\u2581Purple",
+        6: "\u2581Cyan",
+        7: "\u2581Magenta",
+        8: "\u2581Brown",
+        9: "\u2581Black",
+    }
+    # new_bg = []
+    # for color in background_color:
+    #     new_bg.append(color_map[color])
+    new_bg = color_map[background_color]
+    return new_bg

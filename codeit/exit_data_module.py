@@ -29,6 +29,9 @@ def get_inference_dataset(
         sparse=sparse,
         text_encoder=text_encoder,
     )
+    # print("__________inference dataset structure__________")
+    # for key in inference_dataset[0]:
+    #     print(key)
     inference_dataset = inference_dataset.map(
         tokenize_simple_seq_2_seq,
         fn_kwargs={
