@@ -128,6 +128,17 @@ class Buffer:
             len(entry["experience"]["input_ids"]) for entry in self.entries["mutated"].values()
         ]
         print(f"max train input length: {max(lengths)}")
+        
+        ##########################################################
+        # print('_____________mutated tasks_____________')
+        # # for entry in self.entries["mutated"].keys():
+        #     # print(entry)
+        # print(list(self.entries["mutated"].keys())[0])
+        # a = list(self.entries["mutated"].keys())[0]
+        # print(self.entries["mutated"][a])
+        # print(self.tokenizer.decode(self.entries["mutated"][a]['experience']['input_ids']))
+        # print(self.tokenizer.decode(self.entries["mutated"][a]['experience']['labels']))
+        ##########################################################
 
     def add(self, task: Task, iteration_id: int, mode: str = "policy"):
         if self.size[mode] >= self.capacity:

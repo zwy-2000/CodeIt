@@ -51,7 +51,7 @@ replay_buffer:
   age_normalizer: 100
   num_policy_experiences: 90_000
   num_mutated_experiences: 10_000
-  mutated_train_tasks_file:  './data_pseudo_test/mutated_tasks_train_' #'./data/mutated_tasks_train_'
+  mutated_train_tasks_file:  './data/mutated_tasks_train_' #'./data_pseudo_test/mutated_tasks_train_'
   max_mutated_train_tasks: 19_200
   mutated_file_start: 9_600
   mutated_file_end: 19_200
@@ -100,13 +100,13 @@ data:
   n_val: 400
   n_test: 400
   train_split: 0.8
-  training_data_dir:  './data_pseudo_test/training/' #'./data/training/'
-  evaluation_data_dir:  './data_pseudo_test/evaluation/' #'./data/evaluation/'
-  raw_training_data_dir:  './data_pseudo_test/raw/training/' #'./data/raw/training/'
-  raw_evaluation_data_dir:  './data_pseudo_test/raw/evaluation/' #'./data/raw/evaluation/' 
+  training_data_dir:  './data/training/' #'./data_pseudo_test/training/'
+  evaluation_data_dir:  './data/evaluation/' #'./data_pseudo_test/evaluation/' 
+  raw_training_data_dir:  './data/raw/training/' #'./data_pseudo_test/raw/training/'
+  raw_evaluation_data_dir:  './data/raw/evaluation/' #'./data_pseudo_test/raw/evaluation/' 
   
-  split_keys_path:   './data_pseudo_test/split_keys.json' #'./data/split_keys.json' 
-  data_dir:   './data_pseudo_test/' #'./data/'
+  split_keys_path:   './data/split_keys.json'  #'./data_pseudo_test/split_keys.json'
+  data_dir:   './data/' #'./data_pseudo_test/'
 
 generator:
   sig_alarm: 0.1

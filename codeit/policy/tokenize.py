@@ -7,6 +7,7 @@ import datasets
 
 from codeit.dsl.dsl import *
 from codeit.utils import get_grid_size
+from codeit.policy.Julian_tokenization.tokenizatino_functions import map_to_t5_token
 
 
 def sparse_grid_text_encoder(grid):
@@ -209,12 +210,19 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     # example["input_ids"] = tokenize_inputs(dataset_entry, tokenizer, input_state_max)
     example["input_ids"] = tokenize_inputs_2(dataset_entry, tokenizer, input_state_max)    
     example["attention_mask"] = [1] * len(example["input_ids"])
-    example["labels"] = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
-        :max_tokens
-    ]
+    ##### this is where the tokenization of program happens
+    # example["labels"] = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+    #     :max_tokens
+    # ]
+    example["labels"] = Julian_mapping(dataset_entry["program"], tokenizer)
+
+
+
     example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
         :max_tokens
     ]
+    print('program: ',example["labels"])
+    print('decoded:', tokenizer.decode(example["labels"]))
     return example
 
 
@@ -259,19 +267,33 @@ def grid_to_colored_text(grid):
 
 def bgcolor_text(background_color):
     color_map = {
-        0: "\u2581Red",
-        1: "\u2581Green",
-        2: "\u2581Blue",
-        3: "\u2581Yellow",
-        4: "\u2581Orange",
-        5: "\u2581Purple",
-        6: "\u2581Cyan",
-        7: "\u2581Magenta",
-        8: "\u2581Brown",
-        9: "\u2581Black",
+        0: "\u2581Black",
+        1: "\u2581Blue",
+        2: "\u2581Red",
+        3: "\u2581Green",
+        4: "\u2581Yellow",
+        5: "\u2581Gray",
+        6: "\u2581Purple",
+        7: "\u2581Orange",
+        8: "\u2581Azure",
+        9: "\u2581Brown",
+        10: "\u2581White"
     }
     # new_bg = []
     # for color in background_color:
     #     new_bg.append(color_map[color])
-    new_bg = color_map[background_color]
+    if background_color in color_map:
+        new_bg = color_map[background_color]
+    else:
+        new_bg = str(new_bg)
     return new_bg
+
+
+######################### functions for mapping programs #########################
+
+def Julian_mapping(target_string, tokenizer):
+    target_token,_ = map_to_t5_token(target_string, extra_token= ['sym_aft_func', 'BoF', 'EoF'], tokenizer=tokenizer,
+                                         loading_new_mappings=False, path_to_mapping='codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
+    ## add T5tokenization of the target token
+    target_token_ids = tokenizer.convert_tokens_to_ids(target_token)
+    return target_token_ids

@@ -29,9 +29,13 @@ def get_inference_dataset(
         sparse=sparse,
         text_encoder=text_encoder,
     )
+    ##########################################################
     # print("__________inference dataset structure__________")
     # for key in inference_dataset[0]:
     #     print(key)
+    # for key in inference_dataset:
+    #     print(key)
+    ##########################################################
     inference_dataset = inference_dataset.map(
         tokenize_simple_seq_2_seq,
         fn_kwargs={
@@ -40,6 +44,14 @@ def get_inference_dataset(
             "max_tokens": max_decoder_tokens,
         },
     )
+    ##########################################################
+    # print("__________inference dataset structure__________")
+    # for key in inference_dataset[0]:
+    #     print(key)
+    # for key in inference_dataset:
+    #     print(key['labels'])
+    # print(len(inference_dataset))
+    ##########################################################    
     return inference_dataset
 
 
