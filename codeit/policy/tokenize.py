@@ -221,8 +221,12 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
         :max_tokens
     ]
-    print('program: ',example["labels"])
-    print('decoded:', tokenizer.decode(example["labels"]))
+    # print('decoded:', tokenizer.decode(example["labels"]))
+    # print('program: ',example["labels"])
+    if example["labels"] == []:
+        print("_________empty labels____________")
+        # print(dataset_entry)
+
     return example
 
 
@@ -285,7 +289,7 @@ def bgcolor_text(background_color):
     if background_color in color_map:
         new_bg = color_map[background_color]
     else:
-        new_bg = str(new_bg)
+        new_bg = str(background_color)
     return new_bg
 
 
