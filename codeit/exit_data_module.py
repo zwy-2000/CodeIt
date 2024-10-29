@@ -23,6 +23,19 @@ def get_inference_dataset(
     sparse=True,
     text_encoder=None,
 ):
+        ##########################################################
+    print("__________tasks structure__________")
+    # for key in inference_dataset[0]:
+    #     print(key)
+    count_no_program = 0
+    for key in tasks:
+        if tasks[key].to_dict()['program'] == None:
+            print('no program')
+            count_no_program += 1
+    print(count_no_program)
+    print(len(tasks)) ### from this step, there are only empty programs
+    ##########################################################
+
     inference_dataset = create_dataset(
         tasks,
         n_examples=n_examples,
