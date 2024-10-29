@@ -23,6 +23,19 @@ def get_inference_dataset(
     sparse=True,
     text_encoder=None,
 ):
+    ##########################################################
+    # print("__________tasks structure__________")
+    # # for key in inference_dataset[0]:
+    # #     print(key)
+    # count_no_program = 0
+    # for key in tasks:
+    #     if tasks[key].to_dict()['program'] == None:
+    #         print('no program')
+    #         count_no_program += 1
+    # print(count_no_program)
+    # print(len(tasks)) from this step, there are only empty programs
+    ##########################################################
+
     inference_dataset = create_dataset(
         tasks,
         n_examples=n_examples,
@@ -31,10 +44,10 @@ def get_inference_dataset(
     )
     ##########################################################
     # print("__________inference dataset structure__________")
-    # for key in inference_dataset[0]:
-    #     print(key)
+    # # for key in inference_dataset[0]:
+    # #     print(key)
     # for key in inference_dataset:
-    #     print(key)
+    #     print(key['program']) ## from this step the program is already empty
     ##########################################################
     inference_dataset = inference_dataset.map(
         tokenize_simple_seq_2_seq,
@@ -47,9 +60,13 @@ def get_inference_dataset(
     ##########################################################
     # print("__________inference dataset structure__________")
     # for key in inference_dataset[0]:
-    #     print(key)
+        # print(key)
+    #############
+    # count_empty = 0
     # for key in inference_dataset:
-    #     print(key['labels'])
+    #     if key['labels'] == []:
+    #         count_empty += 1
+    # print(count_empty)
     # print(len(inference_dataset))
     ##########################################################    
     return inference_dataset

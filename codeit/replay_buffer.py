@@ -146,8 +146,14 @@ class Buffer:
             self.reduce(mode=mode)
         unique_id = f"{task.parent_key}{task.program_lines}"
         self.programs[mode].add(task.program_lines)
+        #############################
+        # print(task.program_lines)
+        ################
         priority = self.get_priority(task, iteration_id, mode)
         experience = self.tokenize_task(task=task)
+        #############################
+        # print(self.tokenizer.decode(experience['labels']))
+        ################
         self.entries[mode][unique_id] = {"experience": experience, "priority": priority}
         self.size[mode] += 1
 

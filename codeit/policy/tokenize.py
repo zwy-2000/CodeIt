@@ -103,6 +103,9 @@ def create_dataset(tasks, n_examples, sparse=True, text_encoder=None):
         # data["initial_states"].append(entry["initial_states"]) ########## where the problem happens
         # data["terminal_states"].append(entry["terminal_states"])
         data["sparse_task"].append(entry["sparse_task"])
+        ##################################################
+        # print("entry program in create_dataset",entry["program"]) # from this step the program is empty
+        ##################################################
     data = datasets.Dataset.from_dict(data)
     return data
 
@@ -223,9 +226,9 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     ]
     # print('decoded:', tokenizer.decode(example["labels"]))
     # print('program: ',example["labels"])
-    if example["labels"] == []:
-        print("_________empty labels____________")
-        # print(dataset_entry)
+    # if example["labels"] == []:
+    #     print("_________empty labels____________") ################################
+        # print(dataset_entry) ## by this step, the entry program is already empty ('')
 
     return example
 
