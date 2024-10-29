@@ -216,6 +216,11 @@ class Agent:
         sorted_indices = np.argsort(ds_lengths)
 
         sorted_ds = self.inference_dataset.select(sorted_indices)
+        ###################
+        print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
+        print(f"First sample in sorted_ds: {sorted_ds[0]}")
+        print(f"Last sample in sorted_ds: {sorted_ds[-1]}")
+        ###################
         collate_fn = functools.partial(
             collate_fn_seq2seq,
             pad_token_id=self.config.models.data.dataloader.tokenizer.pad_token_id,
