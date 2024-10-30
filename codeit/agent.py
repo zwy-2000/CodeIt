@@ -279,6 +279,13 @@ class Agent:
         if policy_sample_log_file:
             with open(policy_sample_log_file, "w") as f:
                 json.dump(log, f)
+        #################
+        # the_task = list(programs.keys())[0]
+        # print("______________the first generated program______________:")
+        # for task in programs:
+        #     print(task)
+        #     print(programs[task])
+        #################
         return programs
 
     def sample_policy_tasks(self, iteration_id, model):
