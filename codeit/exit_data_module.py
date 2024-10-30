@@ -25,8 +25,10 @@ def get_inference_dataset(
 ):
     ##########################################################
     # print("__________tasks structure__________")
-    # # for key in inference_dataset[0]:
-    # #     print(key)
+    # first_task = list(tasks.keys())[0]
+    # for key in tasks[first_task].to_dict():
+        # print(key)               ## key: program, training_examples, test_examples, task_key, parent_key, extra_info,  SO FAR SO GOOD
+    ##########################
     # count_no_program = 0
     # for key in tasks:
     #     if tasks[key].to_dict()['program'] == None:
@@ -44,10 +46,10 @@ def get_inference_dataset(
     )
     ##########################################################
     # print("__________inference dataset structure__________")
-    # # for key in inference_dataset[0]:
-    # #     print(key)
-    # for key in inference_dataset:
-    #     print(key['program']) ## from this step the program is already empty
+    # for key in inference_dataset[0]:
+    #     print(key)                    ## key: task_id, program, sparse_task        so far no labels
+    # # for key in inference_dataset:
+    # #     print(key['program']) ## from this step the program is already empty
     ##########################################################
     inference_dataset = inference_dataset.map(
         tokenize_simple_seq_2_seq,
@@ -57,17 +59,17 @@ def get_inference_dataset(
             "max_tokens": max_decoder_tokens,
         },
     )
-    ##########################################################
+    #########################################################
     # print("__________inference dataset structure__________")
     # for key in inference_dataset[0]:
-        # print(key)
+    #     print(key)                       ## key: task_id, program, sparse_task, input_ids, attention_mask, labels
     #############
     # count_empty = 0
     # for key in inference_dataset:
     #     if key['labels'] == []:
     #         count_empty += 1
     # print(count_empty)
-    # print(len(inference_dataset))
+    # print(len(inference_dataset))        ## this is where the labels = [] happens
     ##########################################################    
     return inference_dataset
 

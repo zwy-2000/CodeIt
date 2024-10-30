@@ -218,8 +218,11 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     #     :max_tokens
     # ]
     example["labels"] = Julian_mapping(dataset_entry["program"], tokenizer)
-
-
+    ###############
+    x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+        :max_tokens
+    ]
+    ###############
 
     example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
         :max_tokens
@@ -229,6 +232,7 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     # if example["labels"] == []:
     #     print("_________empty labels____________") ################################
         # print(dataset_entry) ## by this step, the entry program is already empty ('')
+    print(x1)
 
     return example
 
