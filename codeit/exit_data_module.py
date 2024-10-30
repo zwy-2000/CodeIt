@@ -65,9 +65,11 @@ def get_inference_dataset(
     #     print(key)                       ## key: task_id, program, sparse_task, input_ids, attention_mask, labels
     #############
     # count_empty = 0
-    # for key in inference_dataset:
+    print('______________labels______________')
+    for key in inference_dataset:
     #     if key['labels'] == []:
     #         count_empty += 1
+        print(key['labels'])
     # print(count_empty)
     # print(len(inference_dataset))        ## this is where the labels = [] happens
     ##########################################################    

@@ -252,6 +252,16 @@ class Agent:
                     for ix in original_ds_indices
                 ]
 
+                #############################################
+                # input_tasks = [
+                #     list(self.tokenizer.batch_decode(self.inference_dataset["labels"]))[ix]
+                #     for ix in original_ds_indices
+                # ]
+                # print('______________input tasks______________')
+                # for input_task in input_tasks:
+                #     print(input_task)
+                #############################################
+
                 tokens = self.evaluator.generate(
                     model=model,
                     num_samples=self.config.exit.n_policy_samples,
