@@ -217,9 +217,9 @@ class Agent:
 
         sorted_ds = self.inference_dataset.select(sorted_indices)
         ###################
-        print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
-        print(f"First sample in sorted_ds: {sorted_ds[0]}")
-        print(f"Last sample in sorted_ds: {sorted_ds[-1]}")
+        # print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
+        # print(f"First sample in sorted_ds: {sorted_ds[0]}")
+        # print(f"Last sample in sorted_ds: {sorted_ds[-1]}")
         ###################
         collate_fn = functools.partial(
             collate_fn_seq2seq,
@@ -281,7 +281,10 @@ class Agent:
                 json.dump(log, f)
         #################
         the_task = list(programs.keys())[0]
-        print(programs[the_task])
+        print("______________the first generated program______________:")
+        for task in programs:
+            print(task)
+            print(programs[task])
         #################
         return programs
 

@@ -219,9 +219,10 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     # ]
     example["labels"] = Julian_mapping(dataset_entry["program"], tokenizer)
     ###############
-    x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
-        :max_tokens
-    ]
+    # x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+    #     :max_tokens
+    # ]
+    # print(x1)
     ###############
 
     example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
@@ -232,7 +233,7 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     # if example["labels"] == []:
     #     print("_________empty labels____________") ################################
         # print(dataset_entry) ## by this step, the entry program is already empty ('')
-    print(x1)
+
 
     return example
 
@@ -306,5 +307,5 @@ def Julian_mapping(target_string, tokenizer):
     target_token,_ = map_to_t5_token(target_string, extra_token= ['sym_aft_func', 'BoF', 'EoF'], tokenizer=tokenizer,
                                          loading_new_mappings=False, path_to_mapping='codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
     ## add T5tokenization of the target token
-    target_token_ids = tokenizer.convert_tokens_to_ids(target_token)
+    target_token_ids = [1]+tokenizer.convert_tokens_to_ids(target_token)
     return target_token_ids
