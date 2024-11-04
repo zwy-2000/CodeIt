@@ -268,6 +268,7 @@ class Agent:
 
                 for batch_dim, task_id in enumerate(task_ids):
                     action_list = self.evaluator.decode_actions(tokens[batch_dim, :, :])
+                    # print(action_list)
                     if task_id in programs:
                         programs[task_id] += action_list
                         log[task_id] += self.replay_buffer.tokenizer.batch_decode(
