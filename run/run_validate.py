@@ -136,6 +136,7 @@ def main(config: Any) -> None:
     )
 
     pl_module = HFModule(config)
+    pl_module.load_pretrained()
     checkpoint_callback = HfModelCheckpoint(
         dirpath=f"{config.model.models_dir}/",
         save_top_k=0,
@@ -148,41 +149,41 @@ def main(config: Any) -> None:
     trainer = pl.Trainer(**config.trainer, logger=logger, callbacks=callbacks)
 
     # load tasks for ablations
-    if config.ablation.used:
-        print("preparing ablations")
-        assert config.exit.add_policy_samples == False
-        print(
-            f"sample values from {config.ablation.start_value} to {config.ablation.final_value} at interval {config.ablation.mutation_interval}"
-        )
-        sample_values = list(
-            range(
-                config.ablation.start_value,
-                config.ablation.final_value + config.ablation.mutation_interval,
-                config.ablation.mutation_interval,
-            )
-        )
-        mutated_tasks_files = [
-            config.ablation.tasks_file + "_" + str(value) + ".json" for value in sample_values
-        ]
-        mutated_tasks_list = []
-        for file in mutated_tasks_files:
-            print(f"loading file {file}")
-            with open(file, "r") as f:
-                mutated_tasks = json.load(f)
-            print(f"loaded {len(mutated_tasks)} tasks")
-            print(f"filtering tasks from file {file}")
-            mutated_tasks = filter_and_load_mutated_tasks(mutated_tasks)
-            if not config.final_experiments:
-                print(f"filtering out validation keys from tasks from file {file}")
-                mutated_tasks = filter_by_inference_keys(
-                    mutated_tasks, agent.inference_tasks.keys()
-                )
-            print(f"adding {len(mutated_tasks)} tasks to task list")
-            mutated_tasks_list.append(mutated_tasks)
-        if len(mutated_tasks_list) != config.exit.n_iters:
-            raise Exception(
-                f"mutated task list length: {len(mutated_tasks_list)} num iters: {config.exit.n_iters}"
-            )
+    # if config.ablation.used:
+    #     print("preparing ablations")
+    #     assert config.exit.add_policy_samples == False
+    #     print(
+    #         f"sample values from {config.ablation.start_value} to {config.ablation.final_value} at interval {config.ablation.mutation_interval}"
+    #     )
+    #     sample_values = list(
+    #         range(
+    #             config.ablation.start_value,
+    #             config.ablation.final_value + config.ablation.mutation_interval,
+    #             config.ablation.mutation_interval,
+    #         )
+    #     )
+    #     mutated_tasks_files = [
+    #         config.ablation.tasks_file + "_" + str(value) + ".json" for value in sample_values
+    #     ]
+    #     mutated_tasks_list = []
+    #     for file in mutated_tasks_files:
+    #         print(f"loading file {file}")
+    #         with open(file, "r") as f:
+    #             mutated_tasks = json.load(f)
+    #         print(f"loaded {len(mutated_tasks)} tasks")
+    #         print(f"filtering tasks from file {file}")
+    #         mutated_tasks = filter_and_load_mutated_tasks(mutated_tasks)
+    #         if not config.final_experiments:
+    #             print(f"filtering out validation keys from tasks from file {file}")
+    #             mutated_tasks = filter_by_inference_keys(
+    #                 mutated_tasks, agent.inference_tasks.keys()
+    #             )
+    #         print(f"adding {len(mutated_tasks)} tasks to task list")
+    #         mutated_tasks_list.append(mutated_tasks)
+    #     if len(mutated_tasks_list) != config.exit.n_iters:
+    #         raise Exception(
+    #             f"mutated task list length: {len(mutated_tasks_list)} num iters: {config.exit.n_iters}"
+    #         )
 
     print(
         f'first inference example inputs {agent.replay_buffer.tokenizer.decode(agent.inference_dataset["input_ids"][0])}'
@@ -222,21 +223,16 @@ def main(config: Any) -> None:
         )
 
         ########################
-        # print('_______________data_module.train_dataset_______________')
-        # for key in data_module.train_dataset[0]: ## a datafram cols = n_tasks, rows = input_ids, attention_mask, labels, task_id  *all_tokenized*
-            # print(key)
-        # for label in data_module.train_dataset["labels"][:1]:
+        # for label in data_module.train_dataset["labels"][:10]:
         #     print(agent.replay_buffer.tokenizer.decode([token for token in label if token != -100]))
-        print("input_ids:", data_module.train_dataset["input_ids"][0])
-        print("attention_mask:", data_module.train_dataset["attention_mask"][0])
-        print("labels:", data_module.train_dataset["labels"][0])
-        print("task_id:", data_module.train_dataset["task_id"][0])
+        # for i in data_module.train_dataset:
+        #     print(i)
         ########################
 
         # train
         t = time.time()
-        trainer.fit(pl_module, datamodule=data_module)
-        trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
+        # trainer.fit(pl_module, datamodule=data_module)
+        # trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
 
         # this might need the Julian trainer
 
@@ -244,7 +240,9 @@ def main(config: Any) -> None:
         t = time.time()
         num_programs = get_num_programs(agent, mode="policy")
         num_tasks = get_num_tasks(agent, mode="policy")
-        model = trainer.model.transformer.eval().to("cuda:0")
+        # model = trainer.model.transformer.eval().to("cuda:0")
+        model = pl_module.transformer.to("cuda:0")
+
         task_demonstration_performance, test_performance, solutions_log = agent.sample_policy_tasks(
             iteration_id=n_iter, model=model
         )

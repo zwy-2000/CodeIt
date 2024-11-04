@@ -28,6 +28,8 @@ from codeit.hf_model_module import HFModule
 from codeit.task import from_dict
 from codeit.utils import get_num_pixels
 
+from codeit.policy.Julian_tokenization.model_trainer import train_Julian_way
+
 
 def calculate_performance_over_inference_tasks(solutions, inference_keys):
     task_demonstration_performance_list = []
@@ -136,53 +138,61 @@ def main(config: Any) -> None:
     )
 
     pl_module = HFModule(config)
-    checkpoint_callback = HfModelCheckpoint(
-        dirpath=f"{config.model.models_dir}/",
-        save_top_k=0,
-        save_last=config.model.save_last,
-        config=config,
-    )
-    callbacks = [checkpoint_callback]
+    pl_module.load_pretrained()
+
+    # checkpoint_callback = HfModelCheckpoint(
+    #     dirpath=f"{config.model.models_dir}/",
+    #     save_top_k=0,
+    #     save_last=config.model.save_last,
+    #     config=config,
+    # )
+    # callbacks = [checkpoint_callback]
+
+    # get Julian model and train it
+    model = pl_module.transformer
+    device = torch.device("cuda")
+    model = model.to(device)
+    
 
     print("initialising trainer")
-    trainer = pl.Trainer(**config.trainer, logger=logger, callbacks=callbacks)
+    # trainer = pl.Trainer(**config.trainer, logger=logger, callbacks=callbacks)
 
     # load tasks for ablations
-    if config.ablation.used:
-        print("preparing ablations")
-        assert config.exit.add_policy_samples == False
-        print(
-            f"sample values from {config.ablation.start_value} to {config.ablation.final_value} at interval {config.ablation.mutation_interval}"
-        )
-        sample_values = list(
-            range(
-                config.ablation.start_value,
-                config.ablation.final_value + config.ablation.mutation_interval,
-                config.ablation.mutation_interval,
-            )
-        )
-        mutated_tasks_files = [
-            config.ablation.tasks_file + "_" + str(value) + ".json" for value in sample_values
-        ]
-        mutated_tasks_list = []
-        for file in mutated_tasks_files:
-            print(f"loading file {file}")
-            with open(file, "r") as f:
-                mutated_tasks = json.load(f)
-            print(f"loaded {len(mutated_tasks)} tasks")
-            print(f"filtering tasks from file {file}")
-            mutated_tasks = filter_and_load_mutated_tasks(mutated_tasks)
-            if not config.final_experiments:
-                print(f"filtering out validation keys from tasks from file {file}")
-                mutated_tasks = filter_by_inference_keys(
-                    mutated_tasks, agent.inference_tasks.keys()
-                )
-            print(f"adding {len(mutated_tasks)} tasks to task list")
-            mutated_tasks_list.append(mutated_tasks)
-        if len(mutated_tasks_list) != config.exit.n_iters:
-            raise Exception(
-                f"mutated task list length: {len(mutated_tasks_list)} num iters: {config.exit.n_iters}"
-            )
+    # if config.ablation.used:
+    #     print("preparing ablations")
+    #     assert config.exit.add_policy_samples == False
+    #     print(
+    #         f"sample values from {config.ablation.start_value} to {config.ablation.final_value} at interval {config.ablation.mutation_interval}"
+    #     )
+    #     sample_values = list(
+    #         range(
+    #             config.ablation.start_value,
+    #             config.ablation.final_value + config.ablation.mutation_interval,
+    #             config.ablation.mutation_interval,
+    #         )
+    #     )
+    #     mutated_tasks_files = [
+    #         config.ablation.tasks_file + "_" + str(value) + ".json" for value in sample_values
+    #     ]
+    #     mutated_tasks_list = []
+    #     for file in mutated_tasks_files:
+    #         print(f"loading file {file}")
+    #         with open(file, "r") as f:
+    #             mutated_tasks = json.load(f)
+    #         print(f"loaded {len(mutated_tasks)} tasks")
+    #         print(f"filtering tasks from file {file}")
+    #         mutated_tasks = filter_and_load_mutated_tasks(mutated_tasks)
+    #         if not config.final_experiments:
+    #             print(f"filtering out validation keys from tasks from file {file}")
+    #             mutated_tasks = filter_by_inference_keys(
+    #                 mutated_tasks, agent.inference_tasks.keys()
+    #             )
+    #         print(f"adding {len(mutated_tasks)} tasks to task list")
+    #         mutated_tasks_list.append(mutated_tasks)
+    #     if len(mutated_tasks_list) != config.exit.n_iters:
+    #         raise Exception(
+    #             f"mutated task list length: {len(mutated_tasks_list)} num iters: {config.exit.n_iters}"
+    #         )
 
     print(
         f'first inference example inputs {agent.replay_buffer.tokenizer.decode(agent.inference_dataset["input_ids"][0])}'
@@ -190,7 +200,11 @@ def main(config: Any) -> None:
     print(
         f'first inference example labels {agent.replay_buffer.tokenizer.decode(agent.inference_dataset["labels"][0])}'
     )
+    training_set = {'input':[], 'target':[], 'name':[], 'local_path':[]}
+    
 
+    global_step = 0
+    #input target name local_path
     for n_iter in range(0, config.exit.n_iters):
 
         if config.profile:
@@ -200,19 +214,19 @@ def main(config: Any) -> None:
         print(f"******** iteration {n_iter} ********")
 
         # add mutated tasks to buffer
-        if config.ablation.used:
-            agent.add_tasks_to_buffer(
-                tasks=mutated_tasks_list[n_iter], iteration_id=n_iter, mode="mutated"
-            )
+        # if config.ablation.used:
+        #     agent.add_tasks_to_buffer(
+        #         tasks=mutated_tasks_list[n_iter], iteration_id=n_iter, mode="mutated"
+        #     )
 
         # sampling replay buffer
 
         data_module = ExItDataModule(config=config, replay_buffer=agent.replay_buffer)
         data_module.setup()
 
-        trainer.logger.log_metrics(
-            {"training set size": len(data_module.train_dataset)}, trainer.global_step
-        )
+        # trainer.logger.log_metrics(
+        #     {"training set size": len(data_module.train_dataset)}, trainer.global_step
+        # )
 
         print(
             f'first training example inputs {agent.replay_buffer.tokenizer.decode(data_module.train_dataset["input_ids"][0])}'
@@ -221,30 +235,49 @@ def main(config: Any) -> None:
             f'first training example labels {agent.replay_buffer.tokenizer.decode([token for token in data_module.train_dataset["labels"][0] if token !=-100])}'
         )
 
-        ########################
-        # print('_______________data_module.train_dataset_______________')
-        # for key in data_module.train_dataset[0]: ## a datafram cols = n_tasks, rows = input_ids, attention_mask, labels, task_id  *all_tokenized*
-            # print(key)
-        # for label in data_module.train_dataset["labels"][:1]:
+
+        ## data_module.train_dataset: input_ids, attention_mask, labels, task_id  *all_tokenized
+
+        #######################
+        # for label in data_module.train_dataset["labels"][:10]:
         #     print(agent.replay_buffer.tokenizer.decode([token for token in label if token != -100]))
-        print("input_ids:", data_module.train_dataset["input_ids"][0])
-        print("attention_mask:", data_module.train_dataset["attention_mask"][0])
-        print("labels:", data_module.train_dataset["labels"][0])
-        print("task_id:", data_module.train_dataset["task_id"][0])
-        ########################
+        # print("input lengths")
+        # for input in data_module.train_dataset["input_ids"][:10]:
+        #     print(len(input))
+        # print(data_module.train_dataset["input_ids"][0])
+        # print("attention_mask lengths")
+        # for mask in data_module.train_dataset["attention_mask"][:10]:
+        #     print(len(mask))
+        # print(data_module.train_dataset["attention_mask"][0])
+        # print("labels lengths")
+        # for label in data_module.train_dataset["labels"][:10]:
+        #     print(len(label))
+        # print(data_module.train_dataset["labels"][0])
+        # print("task length")
+        # for id in data_module.train_dataset["task_id"][:10]:
+        #     print(len(id))
+        # print(data_module.train_dataset["task_id"][0])
+        # print(type(data_module.train_dataset["task_id"][0]))
+        # print(type(data_module.train_dataset))
+
+        #######################
 
         # train
-        t = time.time()
-        trainer.fit(pl_module, datamodule=data_module)
-        trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
+        # t = time.time()
+        # trainer.fit(pl_module, datamodule=data_module)
+        # trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
 
-        # this might need the Julian trainer
+        # Train it in Julian's 
+        model, step_for_log = train_Julian_way(model, data_module.train_dataset, agent.replay_buffer.tokenizer, n_iter, device)
+        global_step += step_for_log
 
         # sampling policy
         t = time.time()
         num_programs = get_num_programs(agent, mode="policy")
         num_tasks = get_num_tasks(agent, mode="policy")
-        model = trainer.model.transformer.eval().to("cuda:0")
+
+        model = model.eval().to("cuda:0")
+        
         task_demonstration_performance, test_performance, solutions_log = agent.sample_policy_tasks(
             iteration_id=n_iter, model=model
         )
@@ -258,45 +291,48 @@ def main(config: Any) -> None:
         )
         cumulative_test_performance = np.mean(cumulative_performance["test_performance"])
 
-        trainer.logger.log_metrics(
-            {
-                "sampling_time/policy": time.time() - t,
-                "task_demonstration/policy/performance": task_demonstration_performance,
-                "test/policy/performance": test_performance,
-                "task_demonstration/policy/cumulative_performance": len(
-                    agent.solutions["policy"]["task_demonstration"]
-                )
-                / len(agent.inference_tasks),
-                "test/policy/cumulative_performance": cumulative_test_performance,
-                "delta_programs/policy": get_num_programs(agent, mode="policy") - num_programs,
-                "delta_tasks/policy": get_num_tasks(agent, mode="policy") - num_tasks,
-            },
-            trainer.global_step,
-        )
+        # trainer.logger.log_metrics(
+        #     {
+        #         "sampling_time/policy": time.time() - t,
+        #         "task_demonstration/policy/performance": task_demonstration_performance,
+        #         "test/policy/performance": test_performance,
+        #         "task_demonstration/policy/cumulative_performance": len(
+        #             agent.solutions["policy"]["task_demonstration"]
+        #         )
+        #         / len(agent.inference_tasks),
+        #         "test/policy/cumulative_performance": cumulative_test_performance,
+        #         "delta_programs/policy": get_num_programs(agent, mode="policy") - num_programs,
+        #         "delta_tasks/policy": get_num_tasks(agent, mode="policy") - num_tasks,
+        #     },
+        #     trainer.global_step,
+        # )
         log = {}
         log["replay_buffer/num_policy_tasks"] = get_num_tasks(agent, mode="policy")
         log["replay_buffer/num_mutated_tasks"] = get_num_tasks(agent, mode="mutated")
         log["replay_buffer/num_policy_programs"] = get_num_programs(agent, mode="policy")
         log["replay_buffer/num_mutated_programs"] = get_num_programs(agent, mode="mutated")
-        trainer.logger.log_metrics(log, trainer.global_step)
+        # trainer.logger.log_metrics(log, trainer.global_step)
 
-        for text_solution in solutions_log:
-            trainer.logger.experiment.add_text(
-                "policy: " + text_solution[6:].split(" ")[0], text_solution, trainer.global_step
-            )
+        # for text_solution in solutions_log:
+        #     trainer.logger.experiment.add_text(
+        #         "policy: " + text_solution[6:].split(" ")[0], text_solution, trainer.global_step
+        #     )
+
 
         write_performance(
             config,
             meta_iteration=n_iter,
             cumulative_performance=np.mean(cumulative_test_performance),
             performance=test_performance,
-            step=trainer.global_step,
+            step=step_for_log,
             num_mutated_tasks=len(agent.replay_buffer.entries["mutated"]),
             num_policy_tasks=len(agent.replay_buffer.entries["policy"]),
         )
 
+
+
         agent.replay_buffer.current_iteration += 1
-        trainer.fit_loop.max_epochs += config.trainer.max_epochs
+        # trainer.fit_loop.max_epochs += config.trainer.max_epochs
 
         if n_iter % solutions_interval == 0:
             agent.save_solutions()
@@ -305,7 +341,7 @@ def main(config: Any) -> None:
             profiler.disable()
             profiler.dump_stats(f"{config.run_dir}/profile_data_{n_iter}.prof")
 
-    return trainer, data_module, pl_module
+    # return trainer, data_module, pl_module    ## it seems not very useful
 
 
 if __name__ == "__main__":

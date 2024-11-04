@@ -51,7 +51,7 @@ replay_buffer:
   age_normalizer: 100
   num_policy_experiences: 90_000
   num_mutated_experiences: 10_000
-  mutated_train_tasks_file:  './data/mutated_tasks_train_' #'./data_pseudo_test/mutated_tasks_train_'  
+  mutated_train_tasks_file:  './data/mutated_tasks_train_' #'./data_pseudo_test/mutated_tasks_train_'  #
   max_mutated_train_tasks: 19_200
   mutated_file_start: 9_600
   mutated_file_end: 19_200
@@ -100,13 +100,13 @@ data:
   n_val: 400
   n_test: 400
   train_split: 0.8
-  training_data_dir:  './data/training/' # './data_pseudo_test/training/' 
-  evaluation_data_dir:  './data/evaluation/' #'./data_pseudo_test/evaluation/' 
-  raw_training_data_dir:  './data/raw/training/' #'./data_pseudo_test/raw/training/' 
-  raw_evaluation_data_dir:  './data/raw/evaluation/' #'./data_pseudo_test/raw/evaluation/' 
+  training_data_dir:  './data/training/' # './data_pseudo_test/training/' #
+  evaluation_data_dir:  './data/evaluation/' #'./data_pseudo_test/evaluation/' #
+  raw_training_data_dir:  './data/raw/training/' #'./data_pseudo_test/raw/training/' #
+  raw_evaluation_data_dir:  './data/raw/evaluation/' #'./data_pseudo_test/raw/evaluation/' #
   
-  split_keys_path:   './data/split_keys.json' # './data_pseudo_test/split_keys.json' 
-  data_dir:   './data/' #'./data_pseudo_test/' 
+  split_keys_path:   './data/split_keys.json' # './data_pseudo_test/split_keys.json' #
+  data_dir:   './data/' #'./data_pseudo_test/' #
 
 generator:
   sig_alarm: 0.1
@@ -116,7 +116,7 @@ generator:
   phi_arg: 0.5
 
 model:
-  max_length: 512
+  max_length: 1024 #512
   cache_dir: ${hydra:run.dir}
   reduce_size: 0
   decoder_start_token_id: 0

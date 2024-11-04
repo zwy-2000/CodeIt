@@ -7,7 +7,7 @@ import datasets
 
 from codeit.dsl.dsl import *
 from codeit.utils import get_grid_size
-from codeit.policy.Julian_tokenization.tokenizatino_functions import map_to_t5_token
+from codeit.policy.Julian_tokenization.tokenization_functions import map_to_t5_token
 
 
 def sparse_grid_text_encoder(grid):
@@ -201,7 +201,7 @@ def tokenize_inputs(dataset_entry, tokenizer, input_state_max):
 def tokenize_inputs_2(dataset_entry, tokenizer, input_state_max):
     input_ids = (
         tokenizer.encode(dataset_entry["sparse_task"], add_special_tokens=False)[
-            : (input_state_max*2 - 1)
+            : (input_state_max*4)
         ]
     )
     return input_ids
@@ -219,11 +219,11 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
     # ]
     example["labels"] = Julian_mapping(dataset_entry["program"], tokenizer)
     ###############
-    x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
-        :max_tokens
-    ]
-    print('original method:',x1)
-    print('Julian method', tokenizer.decode(example["labels"]))
+    # x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+    #     :max_tokens
+    # ]
+    # print('original method:',tokenizer.decode(x1))
+    # print('Julian method', tokenizer.decode(example["labels"])) ########this is important#########
     ###############
 
     example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
@@ -308,5 +308,5 @@ def Julian_mapping(target_string, tokenizer):
     target_token,_ = map_to_t5_token(target_string, extra_token= ['sym_aft_func', 'BoF', 'EoF'], tokenizer=tokenizer,
                                          loading_new_mappings=False, path_to_mapping='codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
     ## add T5tokenization of the target token
-    target_token_ids = [1]+tokenizer.convert_tokens_to_ids(target_token)
+    target_token_ids = tokenizer.convert_tokens_to_ids(target_token)+[1]
     return target_token_ids

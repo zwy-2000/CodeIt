@@ -48,10 +48,10 @@ def get_inference_dataset(
     # print("__________inference dataset structure__________")
     # for key in inference_dataset[0]:
     #     print(key)                    ## key: task_id, program, sparse_task        so far no labels
-    # # for key in inference_dataset:
-    # #     print(key['program']) ## from this step the program is already empty
+    # for key in inference_dataset:
+        # print(key['program']) ## from this step the program is already empty
     ##########################################################
-    inference_dataset = inference_dataset.map(
+    inference_dataset = inference_dataset.map(        ## this is where the labels = [] happens  ***************************
         tokenize_simple_seq_2_seq,
         fn_kwargs={
             "tokenizer": tokenizer,
@@ -65,13 +65,13 @@ def get_inference_dataset(
     #     print(key)                       ## key: task_id, program, sparse_task, input_ids, attention_mask, labels
     #############
     # count_empty = 0
-    print('______________labels______________')
-    for key in inference_dataset:
+    # print('______________labels______________')
+    # for key in inference_dataset:
     #     if key['labels'] == []:
     #         count_empty += 1
-        print(key['labels'])
+        # print(key['labels'])
     # print(count_empty)
-    # print(len(inference_dataset))        ## this is where the labels = [] happens
+    # print(len(inference_dataset))
     ##########################################################    
     return inference_dataset
 

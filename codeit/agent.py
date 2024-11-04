@@ -22,6 +22,8 @@ from codeit.policy.inference import Evaluator
 from codeit.replay_buffer import Buffer
 from codeit.task import get_tasks_with_keys
 
+from codeit.policy.Julian_tokenization.tokenization_functions import decode_action_custom
+
 
 def calculate_performance(solutions, task_key):
     if task_key in solutions:
@@ -114,6 +116,10 @@ class Agent:
             )
             self.train_keys = train_keys
             self.train_tasks = train_tasks
+        
+        ######################
+        # print("inference task length", len(inference_tasks))
+        ######################
 
         self.replay_buffer = Buffer(config=config, train_tasks=train_tasks)
 
@@ -152,6 +158,16 @@ class Agent:
             sparse=self.sparse,
             text_encoder=None,
         )
+
+        ###################################
+        # inference_dataset structure
+        # print('____________inference dataset______________')
+        # for key in self.inference_dataset:
+        #     print(key)
+        # print('____________end of inference dataset_______________')
+        # self.inference_dataset["labels"]
+        ###################################
+
 
         self.solutions = {"policy": {"seen_example": {}, "task_demonstration": {}, "test": {}}}
 
@@ -217,9 +233,14 @@ class Agent:
 
         sorted_ds = self.inference_dataset.select(sorted_indices)
         ###################
-        # print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
-        # print(f"First sample in sorted_ds: {sorted_ds[0]}")
-        # print(f"Last sample in sorted_ds: {sorted_ds[-1]}")
+        print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
+        print(f"First sample in sorted_ds: {self.tokenizer.decode(sorted_ds[0]['input_ids'])}")
+        print(f"Last sample in sorted_ds: {self.tokenizer.decode(sorted_ds[-1]['input_ids'])}")
+        # print('_________________________')
+        # print('blank', self.tokenizer.encode(' '))
+        # print('</s>',self.tokenizer.encode('</s>'))
+
+        # print('_________________________')
         ###################
         collate_fn = functools.partial(
             collate_fn_seq2seq,
@@ -254,7 +275,7 @@ class Agent:
 
                 #############################################
                 # input_tasks = [
-                #     list(self.tokenizer.batch_decode(self.inference_dataset["labels"]))[ix]
+                #     list(self.tokenizer.batch_decode(self.inference_dataset["input_ids"]))[ix]
                 #     for ix in original_ds_indices
                 # ]
                 # print('______________input tasks______________')
@@ -270,11 +291,18 @@ class Agent:
                     temperature=self.config.evaluation.temperature,
                     max_length=self.config.evaluation.max_length,
                 )
+                ###############################
+                # print(len(tokens[0]))
+                # for i in tokens:
+                #     print(self.tokenizer.decode(i))
+                ###############################
+                # tokens = tokens.reshape(actual_batch_size, self.config.exit.n_policy_samples, -1)
+                tokens = tokens.reshape(actual_batch_size, 1, -1)
 
-                tokens = tokens.reshape(actual_batch_size, self.config.exit.n_policy_samples, -1)
 
                 for batch_dim, task_id in enumerate(task_ids):
-                    action_list = self.evaluator.decode_actions(tokens[batch_dim, :, :])
+                    # action_list = self.evaluator.decode_actions(tokens[batch_dim, :, :])
+                    action_list = decode_action_custom(tokens[batch_dim, :, :], self.tokenizer)
 
                     if task_id in programs:
                         programs[task_id] += action_list

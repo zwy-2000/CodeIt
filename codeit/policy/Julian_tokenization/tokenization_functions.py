@@ -186,3 +186,177 @@ def get_best_match_levenstein(token, all_tokens, used_matches):
         if match not in used_matches:
             return match, dist
     return None, None
+
+
+def decode_action_custom(gen_id, tokenizer):
+    extra_tokens = [
+    'sym_aft_func',
+    'EoF',
+    'BoF'
+    ]
+    one_sample_pred = []
+    print(gen_id)
+    for _id in gen_id[0]:
+        token = tokenizer.convert_ids_to_tokens(int(_id))
+        one_sample_pred.append(token)
+    print(one_sample_pred)
+    our_token_sample = map_back(one_sample_pred, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
+    our_token_sample = small_trick(our_token_sample, extra_tokens)
+    print(our_token_sample)
+    our_token_sample=reconstruct_code(our_token_sample, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
+    print(our_token_sample)
+
+    return [our_token_sample]
+
+
+def map_back(list_of_tokens, filename):
+    T5_map = load_token_mappings(filename=filename)
+    # use the dictionary to map back the tokens
+    # switch the key and values
+    T5_map = {v: k for k, v in T5_map.items()}
+    original_tokens = []
+    for token in list_of_tokens:
+        if token in T5_map:
+            original_tokens.append(T5_map[token])
+        else:
+            original_tokens.append(token)
+
+    return original_tokens
+
+def small_trick(our_token_sample, extra_tokens):
+    if 'BoF' in extra_tokens and 'var_to_num' in extra_tokens:
+        our_token_sample[0] = '#BoF'
+        our_token_sample[1] = '#newline'
+        our_token_sample[2] = 'x'
+        our_token_sample[3] = '1'
+    elif 'BoF' in extra_tokens:
+        our_token_sample[0] = '#BoF'
+        our_token_sample[1] = '#newline'
+        our_token_sample[2] = 'x1'
+    elif 'var_to_num' in extra_tokens:
+        our_token_sample[0] = '#newline'
+        our_token_sample[1] = 'x'
+        our_token_sample[2] = '1'
+    else:
+        our_token_sample[0] = '#newline'
+        our_token_sample[1] = 'x1'
+    return our_token_sample
+
+def reconstruct_code(token_list, path_to_mapping):
+    tokens = token_list
+    output = []
+    current_function = []
+    # search for #newline from the back of the list
+    last_idx_newline = len(tokens) - tokens[::-1].index('#newline') - 1
+    i = 0
+
+    # make the function header with the name of the function
+    # import_statement = "from dsl import * \nfrom constants import *\n"
+    # output.append(import_statement)
+    # function_header = f"\n\ndef solve_{name_idx}(I: Grid) -> Grid:"
+    # current_function.append(function_header)
+    while i < len(tokens):
+        token = tokens[i]
+
+        if token == '#newline' or i==0 or token == '<pad>':
+            try:
+                current_function.append('\n')  # Add newline
+
+                # get the indexes of the beginning and the end of the line
+                if i == last_idx_newline:
+                    # for last line in the code, it is only one time true in the end
+                    idx_end_line = tokens.index('#EoF', i + 1)
+                else:
+                    idx_end_line = tokens.index('#newline', i + 1)
+                    if '#EoF' in tokens[i + 1:idx_end_line]:
+                        idx_of_end_func = tokens.index('#EoF', i + 1)
+                        if idx_end_line > idx_of_end_func:
+                            idx_end_line = idx_of_end_func
+
+
+                code_line = rebuild_the_line(tokens, i, idx_end_line, path_to_mapping)
+                current_function.extend(code_line)
+                i = idx_end_line  # Move index to next relevant token
+            except:
+                current_function.append('\n')
+                current_function.append('    # there was an error in the code in this line')
+                i += 1
+        elif token == '#EoF':
+            # current_function.append("\n    return O")
+            output.append(''.join(current_function))
+            current_function = []
+            break # Move to next token
+
+        else:
+            current_function.append(f"\n    # generated {token}")
+            i += 1  # Skip unrecognized tokens or handle other cases if needed
+
+    if current_function:
+        output.append(''.join(current_function))
+
+    # Return a single string that concatenates all function definitions
+    return ''.join(output)
+
+
+
+def rebuild_the_line(tokens, idx_beginning, idx_end_line, path_to_mapping):
+    # load mapping
+    dsl_token_mappings = load_token_mappings_utils(filename=path_to_mapping) # tokens[idx_beginning:idx_end_line]
+    idx_of_break = tokens.index(';', idx_beginning + 1, idx_end_line)
+    function_name = tokens[idx_of_break - 1]
+    sub_tokens = tokens[idx_beginning:idx_of_break]
+    if sub_tokens.count('x') > 1 or (sub_tokens.count('x') + sub_tokens.count('O')) > 1:
+        reversed_sub_tokens = sub_tokens[::-1]
+        reverse_index = reversed_sub_tokens.index('x')
+        idx_var_name = idx_of_break - reverse_index - 1
+        function_name = ''.join(tokens[idx_var_name:idx_of_break])
+        idx_var_name = idx_var_name + 1
+    else:
+        idx_var_name = idx_of_break
+
+    arguments = tokens[idx_of_break + 1:idx_end_line]
+    args = []
+    unrecognized_tokens = []
+    # get all the arguments which are the inputs to the function
+    for1 = 0
+    # there is a unrecognized tokens
+    while for1 < len(arguments):
+        if not arguments[for1] in dsl_token_mappings:
+            unrecognized_tokens.append(arguments[for1])
+            for1 += 1
+        elif arguments[for1] == 'x':
+            for2 = for1 + 1
+            argument = 'x'
+            while for2 < len(arguments):
+                if arguments[for2] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+                    argument += arguments[for2]
+                    for2 += 1
+                else:
+                    break
+            args.extend([argument])
+            for1 = for2
+
+        else:
+            args.extend([arguments[for1]])
+            for1 += 1
+
+    if tokens[idx_beginning + 1] == 'O':
+        var_name = 'O'
+        code_line = f"    {var_name} = {function_name}({', '.join(args)})"
+    else:
+        var_name = ''.join(tokens[idx_beginning+1:idx_var_name-1])
+        code_line = f"    {var_name} = {function_name}({', '.join(args)})"
+    if unrecognized_tokens:
+        comment = ', '.join(unrecognized_tokens)
+        code_line = code_line + f"   # there was an unrecognized token in the code: " + comment
+    return code_line
+
+
+def load_token_mappings_utils(filename="dsl_token_mappings_T5.json"):
+    """Loads token mappings from a JSON file, handling potential errors."""
+    try:
+        with open(filename, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("No existing token mappings found.")
+        return None

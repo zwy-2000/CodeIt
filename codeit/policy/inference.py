@@ -105,17 +105,43 @@ class Evaluator:
         else:
             logits_processor = None
 
+        # tokens = model.generate(
+        #     input_ids=input_ids,
+        #     attention_mask=attention_mask,
+        #     do_sample=True,
+        #     temperature=temperature,
+        #     max_length=max_length,
+        #     num_return_sequences=num_samples,
+        #     logits_processor=logits_processor,
+        #     output_scores=False,
+        #     return_dict_in_generate=False,
+        # )
+
+        ## Julian's way of generation
         tokens = model.generate(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            do_sample=True,
-            temperature=temperature,
-            max_length=max_length,
-            num_return_sequences=num_samples,
-            logits_processor=logits_processor,
-            output_scores=False,
-            return_dict_in_generate=False,
-        )
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=max_length,
+                num_beams=15, ##
+                repetition_penalty=2.5,
+                length_penalty=1.0,
+                early_stopping=True
+            )
+        
+
+
+        ## combined way of generation (beam_search + sampling)
+        # tokens = model.generate(
+        #         input_ids=input_ids,
+        #         attention_mask=attention_mask,
+        #         max_length=max_length,
+        #         num_beams=15, ##
+        #         do_sample=True,
+        #         temperature=temperature,
+        #         repetition_penalty=2.5,
+        #         length_penalty=1.0,
+        #         early_stopping=True
+        #     )
         return tokens
 
     def decode_actions(self, tokens):
