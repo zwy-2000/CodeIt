@@ -15,6 +15,9 @@ from codeit.dsl.primitives import *
 def execute_candidate_program(program_string, program_input, max_state_size=1_000, sig_alarm=False):
     program_string = program_string.rstrip("\n")
     valid_syntax = check_syntax(program_string)
+    #####################
+    # print(valid_syntax)
+    #####################
     if valid_syntax != "Valid Syntax":
         return valid_syntax
     if not valid_grid(program_input):

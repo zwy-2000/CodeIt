@@ -233,9 +233,9 @@ class Agent:
 
         sorted_ds = self.inference_dataset.select(sorted_indices)
         ###################
-        print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
-        print(f"First sample in sorted_ds: {self.tokenizer.decode(sorted_ds[0]['input_ids'])}")
-        print(f"Last sample in sorted_ds: {self.tokenizer.decode(sorted_ds[-1]['input_ids'])}")
+        # print(f"Number of samples in sorted_ds: {len(sorted_ds)}")
+        # print(f"First sample in sorted_ds: {self.tokenizer.decode(sorted_ds[0]['input_ids'])}")
+        # print(f"Last sample in sorted_ds: {self.tokenizer.decode(sorted_ds[-1]['input_ids'])}")
         # print('_________________________')
         # print('blank', self.tokenizer.encode(' '))
         # print('</s>',self.tokenizer.encode('</s>'))
@@ -292,12 +292,13 @@ class Agent:
                     max_length=self.config.evaluation.max_length,
                 )
                 ###############################
+                # print(tokens.shape)
                 # print(len(tokens[0]))
                 # for i in tokens:
                 #     print(self.tokenizer.decode(i))
                 ###############################
                 # tokens = tokens.reshape(actual_batch_size, self.config.exit.n_policy_samples, -1)
-                tokens = tokens.reshape(actual_batch_size, 1, -1)
+                # tokens = tokens.reshape(actual_batch_size, 1, -1)
 
 
                 for batch_dim, task_id in enumerate(task_ids):
@@ -318,11 +319,11 @@ class Agent:
             with open(policy_sample_log_file, "w") as f:
                 json.dump(log, f)
         #################
-        the_task = list(programs.keys())[0]
-        print("______________the first generated program______________:")
-        for task in programs:
-            print(task)
-            print(programs[task])
+        # the_task = list(programs.keys())[0]
+        # print("______________the first generated program______________:")
+        # for task in programs:
+        #     print(task)
+        #     print(programs[task])
         #################
         return programs
 
@@ -335,7 +336,8 @@ class Agent:
             task_demonstration_performance_over_tasks = []
             test_performance_over_tasks = []
             for task in tqdm(self.inference_tasks.values(), desc="Evaluating programs over tasks"):
-
+                # print(task.task_key)
+                # print(programs[task.task_key])
                 (
                     solutions,
                     generated_tasks,

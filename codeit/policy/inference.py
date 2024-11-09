@@ -118,15 +118,15 @@ class Evaluator:
         # )
 
         ## Julian's way of generation
-        tokens = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                max_length=max_length,
-                num_beams=15, ##
-                repetition_penalty=2.5,
-                length_penalty=1.0,
-                early_stopping=True
-            )
+        # tokens = model.generate(
+        #         input_ids=input_ids,
+        #         attention_mask=attention_mask,
+        #         max_length=max_length,
+        #         num_beams=15, ##
+        #         repetition_penalty=2.5,
+        #         length_penalty=1.0,
+        #         early_stopping=True
+        #     )
         
 
 
@@ -142,6 +142,24 @@ class Evaluator:
         #         length_penalty=1.0,
         #         early_stopping=True
         #     )
+
+
+        tokens = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=max_length,
+                num_beams=36,                           # Set number of beams
+                num_return_sequences=num_samples,       # Return multiple sequences
+                num_beam_groups=6,                      # Groups within beams for diversity
+                diversity_penalty=1.0,                  # Encourage diversity across beams
+                repetition_penalty=2.5,                 # Avoid repetition within sequences
+                length_penalty=1.0,                     # Balance between length and probability
+                early_stopping=True                     # Stop when beams have reached eos
+            )
+        batch_size = 4
+        sequence_length = tokens.shape[1]
+        tokens = tokens.view(batch_size, num_samples, sequence_length)
+
         return tokens
 
     def decode_actions(self, tokens):

@@ -188,25 +188,38 @@ def get_best_match_levenstein(token, all_tokens, used_matches):
     return None, None
 
 
-def decode_action_custom(gen_id, tokenizer):
+def decode_action_custom(samples, tokenizer):
     extra_tokens = [
     'sym_aft_func',
     'EoF',
     'BoF'
     ]
-    one_sample_pred = []
-    print(gen_id)
-    for _id in gen_id[0]:
-        token = tokenizer.convert_ids_to_tokens(int(_id))
-        one_sample_pred.append(token)
-    print(one_sample_pred)
-    our_token_sample = map_back(one_sample_pred, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
-    our_token_sample = small_trick(our_token_sample, extra_tokens)
-    print(our_token_sample)
-    our_token_sample=reconstruct_code(our_token_sample, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
-    print(our_token_sample)
+    all_sample_pred = []
+    for _sample in samples:
+        one_sample_pred = []
+        # print(gen_id)
+        for _id in _sample:
+            token = tokenizer.convert_ids_to_tokens(int(_id))
+            one_sample_pred.append(token)
+        try:
+            # print(one_sample_pred) ##########
+            our_token_sample = map_back(one_sample_pred, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
+            # print(our_token_sample) ##########
+            # our_token_sample = small_trick(our_token_sample, extra_tokens)
+            # print(our_token_sample) ##########
+            our_token_sample=reconstruct_code(our_token_sample, 'codeit/policy/Julian_tokenization/dsl_token_mappings_T5.json')
+            # print(our_token_sample) ##########
+            # print("1st letter:", our_token_sample[0] == "\n") #######
+            # print("2nd letter:", our_token_sample[1] == "\n") #######
+            # print("3rd letter:", our_token_sample[2] == " ") #######
+            # print("4th letter:", our_token_sample[3] == " ") #######
+            cleaned_token_sample = re.sub(r"^[\s\n]*", "", our_token_sample) ### this is to clean up the initial new lines
+        except Exception as error:
+            print("Error during code reconstruction:", error) 
+            cleaned_token_sample = ''
 
-    return [our_token_sample]
+        all_sample_pred.append(cleaned_token_sample)
+    return all_sample_pred
 
 
 def map_back(list_of_tokens, filename):
@@ -258,11 +271,12 @@ def reconstruct_code(token_list, path_to_mapping):
     while i < len(tokens):
         token = tokens[i]
 
-        if token == '#newline' or i==0 or token == '<pad>':
+        if token == '#newline' or i==0: #or token == '<pad>':
             try:
                 current_function.append('\n')  # Add newline
 
-                # get the indexes of the beginning and the end of the line
+                # get
+                #  the indexes of the beginning and the end of the line
                 if i == last_idx_newline:
                     # for last line in the code, it is only one time true in the end
                     idx_end_line = tokens.index('#EoF', i + 1)
@@ -278,8 +292,8 @@ def reconstruct_code(token_list, path_to_mapping):
                 current_function.extend(code_line)
                 i = idx_end_line  # Move index to next relevant token
             except:
-                current_function.append('\n')
-                current_function.append('    # there was an error in the code in this line')
+                # current_function.append('\n')
+                # current_function.append('    # there was an error in the code in this line')
                 i += 1
         elif token == '#EoF':
             # current_function.append("\n    return O")
