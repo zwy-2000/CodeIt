@@ -63,13 +63,13 @@ class HFModule(pl.LightningModule):
                 self.transformer = model_class(my_config)
 
         # Load SafeTensors file
-        safetensor_path = '/home/wzhu/CodeIt/data_Julian_pretrained/model.safetensors'
-        state_dict = load_file(safetensor_path)
+        # safetensor_path = '/home/wzhu/CodeIt/data_Julian_pretrained/model.safetensors'
+        # state_dict = load_file(safetensor_path)
         # state_dict = {k: torch.tensor(v) for k, v in safe_tensor_data.items()}
         
         # Load state_dict into the model
-        self.transformer.load_state_dict(state_dict, strict=False)
-        print("Weights loaded from SafeTensors file.")
+        # self.transformer.load_state_dict(state_dict, strict=False)
+        # print("Weights loaded from SafeTensors file.")
 
 
 

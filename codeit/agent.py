@@ -302,8 +302,11 @@ class Agent:
 
 
                 for batch_dim, task_id in enumerate(task_ids):
-                    # action_list = self.evaluator.decode_actions(tokens[batch_dim, :, :])
-                    action_list = decode_action_custom(tokens[batch_dim, :, :], self.tokenizer)
+                    # print(tokens.shape)
+                    action_list = self.evaluator.decode_actions(tokens[batch_dim, :, :])
+                    # print(action_list)
+                    ## for Julian's fine-tuned:
+                    # action_list = decode_action_custom(tokens[batch_dim, :, :], self.tokenizer)  
 
                     if task_id in programs:
                         programs[task_id] += action_list
@@ -321,6 +324,7 @@ class Agent:
         #################
         # the_task = list(programs.keys())[0]
         # print("______________the first generated program______________:")
+        # print(programs[the_task])
         # for task in programs:
         #     print(task)
         #     print(programs[task])

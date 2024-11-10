@@ -105,17 +105,21 @@ class Evaluator:
         else:
             logits_processor = None
 
-        # tokens = model.generate(
-        #     input_ids=input_ids,
-        #     attention_mask=attention_mask,
-        #     do_sample=True,
-        #     temperature=temperature,
-        #     max_length=max_length,
-        #     num_return_sequences=num_samples,
-        #     logits_processor=logits_processor,
-        #     output_scores=False,
-        #     return_dict_in_generate=False,
-        # )
+        tokens = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            do_sample=True,
+            temperature=temperature,
+            max_length=max_length,
+            num_return_sequences=num_samples,
+            logits_processor=logits_processor,
+            output_scores=False,
+            return_dict_in_generate=False,
+        )
+        batch_size = 4
+        sequence_length = tokens.shape[1]
+        tokens = tokens.view(batch_size, num_samples, sequence_length)
+
 
         ## Julian's way of generation
         # tokens = model.generate(
@@ -130,35 +134,23 @@ class Evaluator:
         
 
 
-        ## combined way of generation (beam_search + sampling)
+
+        ## generation for Julian's fine-tuned
         # tokens = model.generate(
         #         input_ids=input_ids,
         #         attention_mask=attention_mask,
         #         max_length=max_length,
-        #         num_beams=15, ##
-        #         do_sample=True,
-        #         temperature=temperature,
-        #         repetition_penalty=2.5,
-        #         length_penalty=1.0,
-        #         early_stopping=True
+        #         num_beams=36,                           # Set number of beams
+        #         num_return_sequences=num_samples,       # Return multiple sequences
+        #         num_beam_groups=6,                      # Groups within beams for diversity
+        #         diversity_penalty=1.0,                  # Encourage diversity across beams
+        #         repetition_penalty=2.5,                 # Avoid repetition within sequences
+        #         length_penalty=1.0,                     # Balance between length and probability
+        #         early_stopping=True                     # Stop when beams have reached eos
         #     )
-
-
-        tokens = model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                max_length=max_length,
-                num_beams=36,                           # Set number of beams
-                num_return_sequences=num_samples,       # Return multiple sequences
-                num_beam_groups=6,                      # Groups within beams for diversity
-                diversity_penalty=1.0,                  # Encourage diversity across beams
-                repetition_penalty=2.5,                 # Avoid repetition within sequences
-                length_penalty=1.0,                     # Balance between length and probability
-                early_stopping=True                     # Stop when beams have reached eos
-            )
-        batch_size = 4
-        sequence_length = tokens.shape[1]
-        tokens = tokens.view(batch_size, num_samples, sequence_length)
+        # batch_size = 4
+        # sequence_length = tokens.shape[1]
+        # tokens = tokens.view(batch_size, num_samples, sequence_length)
 
         return tokens
 

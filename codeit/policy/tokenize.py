@@ -93,10 +93,25 @@ def sparse_grid_text_decoder(grid_text):
 
 
 def create_dataset(tasks, n_examples, sparse=True, text_encoder=None):
+    data = {"task_id": [], "program": [], "initial_states": [], "terminal_states": []}
+    for task in tasks.values():
+        entry = create_dataset_entry(task, n_examples, sparse=sparse)
+        data["task_id"].append(entry["task_id"])
+        data["program"].append(entry["program"])
+        data["initial_states"].append(entry["initial_states"]) ########## where the problem happens
+        data["terminal_states"].append(entry["terminal_states"])
+        ##################################################
+        # print("entry program in create_dataset",entry["program"]) # from this step the program is empty
+        ##################################################
+    data = datasets.Dataset.from_dict(data)
+    return data
+
+def create_dataset_2(tasks, n_examples, sparse=True, text_encoder=None):
     # data = {"task_id": [], "program": [], "initial_states": [], "terminal_states": []}
     data = {"task_id": [], "program": [], "sparse_task": []}
     for task in tasks.values():
         # entry = create_dataset_entry(task, n_examples, sparse=sparse)
+        # for Julian's fine-tuned
         entry = create_dataset_entry_2(task, n_examples, sparse=sparse)
         data["task_id"].append(entry["task_id"])
         data["program"].append(entry["program"])
@@ -210,6 +225,36 @@ def tokenize_inputs_2(dataset_entry, tokenizer, input_state_max):
 
 def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tokens):
     example = {}
+    example["input_ids"] = tokenize_inputs(dataset_entry, tokenizer, input_state_max)
+    # example["input_ids"] = tokenize_inputs_2(dataset_entry, tokenizer, input_state_max)    
+    example["attention_mask"] = [1] * len(example["input_ids"])
+    ##### this is where the tokenization of program happens
+    example["labels"] = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+        :max_tokens
+    ]
+    ###############
+    # x1 = tokenizer.encode(dataset_entry["program"], add_special_tokens=True)[
+    #     :max_tokens
+    # ]
+    # print('original method:',tokenizer.decode(x1))
+    # print('Julian method', tokenizer.decode(example["labels"])) ########this is important#########
+    ###############
+
+    example["task_id"] = tokenizer.encode(dataset_entry["task_id"], add_special_tokens=False)[
+        :max_tokens
+    ]
+    # print('decoded:', tokenizer.decode(example["labels"]))
+    # print('program: ',example["labels"])
+    # if example["labels"] == []:
+    #     print("_________empty labels____________") ################################
+    #     print(dataset_entry) ## by this step, the entry program is already empty ('')
+
+
+    return example
+
+
+def tokenize_simple_seq_2_seq_2(dataset_entry, tokenizer, input_state_max, max_tokens):
+    example = {}
     # example["input_ids"] = tokenize_inputs(dataset_entry, tokenizer, input_state_max)
     example["input_ids"] = tokenize_inputs_2(dataset_entry, tokenizer, input_state_max)    
     example["attention_mask"] = [1] * len(example["input_ids"])
@@ -238,8 +283,19 @@ def tokenize_simple_seq_2_seq(dataset_entry, tokenizer, input_state_max, max_tok
 
     return example
 
-
 def tokenize_task(
+    task, tokenizer, n_examples, input_state_max, max_tokens, sparse=True, text_encoder=None
+):
+    entry = create_dataset_entry(task, n_examples=n_examples, sparse=sparse)
+    # entry = create_dataset_entry_2(task, n_examples=n_examples, sparse=sparse) ## updated tokenization
+    return tokenize_simple_seq_2_seq(
+        tokenizer=tokenizer,
+        dataset_entry=entry,
+        input_state_max=input_state_max,
+        max_tokens=max_tokens,
+    )
+
+def tokenize_task_2(
     task, tokenizer, n_examples, input_state_max, max_tokens, sparse=True, text_encoder=None
 ):
     # entry = create_dataset_entry(task, n_examples=n_examples, sparse=sparse)
@@ -292,13 +348,14 @@ def bgcolor_text(background_color):
         9: "\u2581Brown",
         10: "\u2581White"
     }
-    # new_bg = []
-    # for color in background_color:
-    #     new_bg.append(color_map[color])
-    if background_color in color_map:
-        new_bg = color_map[background_color]
-    else:
-        new_bg = str(background_color)
+    new_bg = []
+    for color in background_color:
+        new_bg.append(color_map[color])
+    ## for Julian's fine-tuned
+    # if background_color in color_map:
+        # new_bg = color_map[background_color]
+    # else:
+        # new_bg = str(background_color)
     return new_bg
 
 
