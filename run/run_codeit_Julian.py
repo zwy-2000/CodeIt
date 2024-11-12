@@ -140,22 +140,22 @@ def main(config: Any) -> None:
     pl_module = HFModule(config)
     pl_module.load_pretrained()
 
-    # checkpoint_callback = HfModelCheckpoint(
-    #     dirpath=f"{config.model.models_dir}/",
-    #     save_top_k=0,
-    #     save_last=config.model.save_last,
-    #     config=config,
-    # )
-    # callbacks = [checkpoint_callback]
+    checkpoint_callback = HfModelCheckpoint(
+        dirpath=f"{config.model.models_dir}/",
+        save_top_k=0,
+        save_last=config.model.save_last,
+        config=config,
+    )
+    callbacks = [checkpoint_callback]
 
     # get Julian model and train it
-    model = pl_module.transformer
-    device = torch.device("cuda")
-    model = model.to(device)
+    # model = pl_module.transformer
+    # device = torch.device("cuda")
+    # model = model.to(device)
     
 
     print("initialising trainer")
-    # trainer = pl.Trainer(**config.trainer, logger=logger, callbacks=callbacks)
+    trainer = pl.Trainer(**config.trainer, logger=logger, callbacks=callbacks)
 
     # load tasks for ablations
     # if config.ablation.used:
@@ -200,10 +200,10 @@ def main(config: Any) -> None:
     print(
         f'first inference example labels {agent.replay_buffer.tokenizer.decode(agent.inference_dataset["labels"][0])}'
     )
-    training_set = {'input':[], 'target':[], 'name':[], 'local_path':[]}
+    # training_set = {'input':[], 'target':[], 'name':[], 'local_path':[]}
     
 
-    global_step = 0
+    # global_step = 0
     #input target name local_path
     for n_iter in range(0, config.exit.n_iters):
 
@@ -224,9 +224,9 @@ def main(config: Any) -> None:
         data_module = ExItDataModule(config=config, replay_buffer=agent.replay_buffer)
         data_module.setup()
 
-        # trainer.logger.log_metrics(
-        #     {"training set size": len(data_module.train_dataset)}, trainer.global_step
-        # )
+        trainer.logger.log_metrics(
+            {"training set size": len(data_module.train_dataset)}, trainer.global_step
+        )
 
         print(
             f'first training example inputs {agent.replay_buffer.tokenizer.decode(data_module.train_dataset["input_ids"][0])}'
@@ -263,13 +263,13 @@ def main(config: Any) -> None:
         #######################
 
         # train
-        # t = time.time()
-        # trainer.fit(pl_module, datamodule=data_module)
-        # trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
+        t = time.time()
+        trainer.fit(pl_module, datamodule=data_module)
+        trainer.logger.log_metrics({"train_time": time.time() - t}, trainer.global_step)
 
         # Train it in Julian's 
-        model, step_for_log = train_Julian_way(model, data_module.train_dataset, agent.replay_buffer.tokenizer, n_iter, device)
-        global_step += step_for_log
+        # model, step_for_log = train_Julian_way(model, data_module.train_dataset, agent.replay_buffer.tokenizer, n_iter, device)
+        # global_step += step_for_log
 
         # sampling policy
         t = time.time()
@@ -291,32 +291,32 @@ def main(config: Any) -> None:
         )
         cumulative_test_performance = np.mean(cumulative_performance["test_performance"])
 
-        # trainer.logger.log_metrics(
-        #     {
-        #         "sampling_time/policy": time.time() - t,
-        #         "task_demonstration/policy/performance": task_demonstration_performance,
-        #         "test/policy/performance": test_performance,
-        #         "task_demonstration/policy/cumulative_performance": len(
-        #             agent.solutions["policy"]["task_demonstration"]
-        #         )
-        #         / len(agent.inference_tasks),
-        #         "test/policy/cumulative_performance": cumulative_test_performance,
-        #         "delta_programs/policy": get_num_programs(agent, mode="policy") - num_programs,
-        #         "delta_tasks/policy": get_num_tasks(agent, mode="policy") - num_tasks,
-        #     },
-        #     trainer.global_step,
-        # )
+        trainer.logger.log_metrics(
+            {
+                "sampling_time/policy": time.time() - t,
+                "task_demonstration/policy/performance": task_demonstration_performance,
+                "test/policy/performance": test_performance,
+                "task_demonstration/policy/cumulative_performance": len(
+                    agent.solutions["policy"]["task_demonstration"]
+                )
+                / len(agent.inference_tasks),
+                "test/policy/cumulative_performance": cumulative_test_performance,
+                "delta_programs/policy": get_num_programs(agent, mode="policy") - num_programs,
+                "delta_tasks/policy": get_num_tasks(agent, mode="policy") - num_tasks,
+            },
+            trainer.global_step,
+        )
         log = {}
         log["replay_buffer/num_policy_tasks"] = get_num_tasks(agent, mode="policy")
         log["replay_buffer/num_mutated_tasks"] = get_num_tasks(agent, mode="mutated")
         log["replay_buffer/num_policy_programs"] = get_num_programs(agent, mode="policy")
         log["replay_buffer/num_mutated_programs"] = get_num_programs(agent, mode="mutated")
-        # trainer.logger.log_metrics(log, trainer.global_step)
+        trainer.logger.log_metrics(log, trainer.global_step)
 
-        # for text_solution in solutions_log:
-        #     trainer.logger.experiment.add_text(
-        #         "policy: " + text_solution[6:].split(" ")[0], text_solution, trainer.global_step
-        #     )
+        for text_solution in solutions_log:
+            trainer.logger.experiment.add_text(
+                "policy: " + text_solution[6:].split(" ")[0], text_solution, trainer.global_step
+            )
 
 
         write_performance(

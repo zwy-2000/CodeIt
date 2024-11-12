@@ -136,6 +136,8 @@ def main(config: Any) -> None:
     )
 
     pl_module = HFModule(config)
+    pl_module.load_pretrained() ## get pretrained
+
     checkpoint_callback = HfModelCheckpoint(
         dirpath=f"{config.model.models_dir}/",
         save_top_k=0,
