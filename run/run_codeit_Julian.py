@@ -150,7 +150,7 @@ def main(config: Any) -> None:
 
     # get Julian model and train it
     model = pl_module.transformer
-    device = torch.device("cuda:1")   ## remember to check availability
+    device = torch.device("cuda:2")   ## remember to check availability
     model = model.to(device)
     
 
@@ -276,7 +276,7 @@ def main(config: Any) -> None:
         num_programs = get_num_programs(agent, mode="policy")
         num_tasks = get_num_tasks(agent, mode="policy")
 
-        model = model.eval().to("cuda:1") ## remember to check cuda availability
+        model = model.eval().to("cuda:2") ## remember to check cuda availability
         
         task_demonstration_performance, test_performance, solutions_log = agent.sample_policy_tasks(
             iteration_id=n_iter, model=model
